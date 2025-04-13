@@ -95,7 +95,7 @@ const OutboundCalling = () => {
 
         {isApiKeySet && (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader>
                 <CardTitle>Make a Call</CardTitle>
                 <CardDescription>
@@ -209,7 +209,7 @@ const OutboundCalling = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader>
                 <CardTitle>How It Works</CardTitle>
                 <CardDescription>

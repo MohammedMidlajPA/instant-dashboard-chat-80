@@ -167,10 +167,24 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
 
-    const endpoint = `/v1/assistants/${assistantId}/calls`;
+    const endpoint = `/v1/calls`;
+    const queryParams = new URLSearchParams();
+    queryParams.append('assistant_id', assistantId);
+    
+    if (filters?.limit) {
+      queryParams.append('limit', filters.limit.toString());
+    }
+    
+    if (filters?.startDate) {
+      queryParams.append('start_date', filters.startDate);
+    }
+    
+    if (filters?.endDate) {
+      queryParams.append('end_date', filters.endDate);
+    }
     
     try {
-      const response = await this.request<{ calls: CallAnalysisResult[] }>(endpoint, {
+      const response = await this.request<{ calls: CallAnalysisResult[] }>(`${endpoint}?${queryParams.toString()}`, {
         method: 'GET',
       });
       
@@ -401,7 +415,7 @@ export class VapiService {
       payload.assistant_id = this.assistantId;
     }
     
-    const endpoint = `/v1/assistants/${this.assistantId}/campaigns`;
+    const endpoint = `/v1/campaigns`;
     
     return this.request<any>(endpoint, {
       method: 'POST',
@@ -414,9 +428,11 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     
-    const endpoint = `/v1/assistants/${this.assistantId}/campaigns`;
+    const endpoint = `/v1/campaigns`;
+    const queryParams = new URLSearchParams();
+    queryParams.append('assistant_id', this.assistantId);
     
-    return this.request<{ campaigns: any[] }>(endpoint, {
+    return this.request<{ campaigns: any[] }>(`${endpoint}?${queryParams.toString()}`, {
       method: 'GET'
     });
   }
@@ -426,9 +442,11 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     
-    const endpoint = `/v1/assistants/${this.assistantId}/campaigns/${campaignId}`;
+    const endpoint = `/v1/campaigns/${campaignId}`;
+    const queryParams = new URLSearchParams();
+    queryParams.append('assistant_id', this.assistantId);
     
-    return this.request<any>(endpoint, {
+    return this.request<any>(`${endpoint}?${queryParams.toString()}`, {
       method: 'GET'
     });
   }
@@ -437,17 +455,24 @@ export class VapiService {
     phone_number: string;
     first_name?: string;
     last_name?: string;
-    [key: string]: any;
+    metadata?: {
+      [key: string]: any;
+    };
   }) {
     if (!this.assistantId) {
       throw new Error("Assistant ID is required");
     }
     
-    const endpoint = `/v1/assistants/${this.assistantId}/calls`;
+    const callPayload = {
+      ...payload,
+      assistant_id: this.assistantId
+    };
+    
+    const endpoint = `/v1/calls`;
     
     return this.request<any>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(callPayload)
     });
   }
 
@@ -456,10 +481,16 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     
-    const endpoint = `/v1/assistants/${this.assistantId}/calls`;
+    const endpoint = `/v1/calls`;
+    const queryParams = new URLSearchParams();
+    queryParams.append('assistant_id', this.assistantId);
+    
+    if (limit) {
+      queryParams.append('limit', limit.toString());
+    }
     
     try {
-      const response = await this.request<{ calls: any[] }>(endpoint, {
+      const response = await this.request<{ calls: any[] }>(`${endpoint}?${queryParams.toString()}`, {
         method: 'GET'
       });
       

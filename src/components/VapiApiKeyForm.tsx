@@ -1,18 +1,16 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { vapiService } from "@/services/vapiService";
-import { supabase } from "@/integrations/supabase/client";
+import { CheckCircle, RefreshCw } from "lucide-react";
 
 interface VapiApiKeyFormProps {
   onApiKeySet?: (isSet: boolean) => void;
 }
 
 export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
-  const [apiKey, setApiKey] = useState("");
   const [isApiKeySet, setIsApiKeySet] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -42,28 +40,6 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
     checkApiKey();
   }, [onApiKeySet]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!apiKey.trim()) {
-      toast.error("Please enter a valid API key");
-      return;
-    }
-    
-    try {
-      vapiService.setApiKey(apiKey);
-      setIsApiKeySet(true);
-      setApiKey(""); // Clear form for security
-      toast.success("VAPI API key has been set successfully");
-      
-      if (onApiKeySet) {
-        onApiKeySet(true);
-      }
-    } catch (error) {
-      toast.error("Failed to set API key");
-    }
-  };
-
   const handleClearApiKey = () => {
     vapiService.clearApiKey();
     setIsApiKeySet(false);
@@ -74,57 +50,61 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
     }
   };
 
+  const handleRefreshCredentials = async () => {
+    setIsLoading(true);
+    try {
+      await vapiService.fetchCredentials();
+      const hasKey = !!vapiService.getApiKey() && !!vapiService.getAssistantId();
+      setIsApiKeySet(hasKey);
+      
+      if (hasKey) {
+        toast.success("VAPI credentials successfully loaded");
+        if (onApiKeySet) onApiKeySet(true);
+      } else {
+        toast.error("Failed to load VAPI credentials");
+      }
+    } catch (error) {
+      console.error("Error refreshing credentials:", error);
+      toast.error("Failed to refresh credentials");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <Card className="w-full">
+    <Card className="w-full shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">VAPI API Configuration</CardTitle>
-        <CardDescription>
-          {isLoading 
-            ? "Checking API configuration..." 
-            : isApiKeySet 
-              ? "Your VAPI API key is configured" 
-              : "Set your VAPI API key to enable AI calling features"}
-        </CardDescription>
+        <CardTitle className="text-lg">VAPI Connection Status</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex items-center justify-center py-2">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
-            <span className="ml-2 text-sm text-gray-500">Checking configuration...</span>
+            <span className="ml-2 text-sm text-gray-500">Verifying connection...</span>
           </div>
         ) : !isApiKeySet ? (
           <div className="space-y-4">
-            <div className="text-sm text-amber-600">
-              API key is now configured through Supabase. No manual entry needed.
+            <div className="flex items-center gap-2 text-amber-600 text-sm">
+              <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+              <span>VAPI connection required</span>
             </div>
             <Button 
-              onClick={async () => {
-                setIsLoading(true);
-                await vapiService.fetchCredentials();
-                const hasKey = !!vapiService.getApiKey() && !!vapiService.getAssistantId();
-                setIsApiKeySet(hasKey);
-                setIsLoading(false);
-                
-                if (hasKey) {
-                  toast.success("VAPI credentials successfully loaded");
-                  if (onApiKeySet) onApiKeySet(true);
-                } else {
-                  toast.error("Failed to load VAPI credentials");
-                }
-              }}
+              onClick={handleRefreshCredentials}
               className="w-full"
+              size="sm"
             >
-              Refresh Credentials
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Connect to VAPI
             </Button>
           </div>
         ) : (
           <div className="flex items-center justify-between">
             <div className="text-sm text-green-600 flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-              API key is set and ready to use
+              <CheckCircle className="h-4 w-4" />
+              Connected to VAPI
             </div>
             <Button variant="outline" size="sm" onClick={handleClearApiKey}>
-              Clear Key
+              Disconnect
             </Button>
           </div>
         )}

@@ -8,6 +8,8 @@ import { VapiApiKeyForm } from "@/components/VapiApiKeyForm";
 import { CampaignList } from "@/components/Campaigns/CampaignList";
 import { CampaignForm } from "@/components/Campaigns/CampaignForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Campaigns = () => {
   const [isApiKeySet, setIsApiKeySet] = useState(false);
@@ -62,11 +64,21 @@ const Campaigns = () => {
             
             <TabsContent value="existing" className="mt-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Active Campaigns</CardTitle>
-                  <CardDescription>
-                    View and manage your ongoing outreach campaigns
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle>Active Campaigns</CardTitle>
+                    <CardDescription>
+                      View and manage your ongoing outreach campaigns
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={fetchCampaigns}
+                    disabled={isLoading}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <CampaignList 
@@ -75,7 +87,6 @@ const Campaigns = () => {
                     onRefresh={fetchCampaigns}
                     onSelect={(campaign) => {
                       setActiveCampaign(campaign);
-                      // Additional handling for campaign selection
                     }}
                   />
                 </CardContent>
