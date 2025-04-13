@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -182,9 +181,13 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
 
-    // FIXED: Using the correct endpoint format
-    const endpoint = `/v1/assistants/${assistantId}/calls`;
+    // FIXED: Using the correct endpoint format based on the error message
+    // The correct endpoint should be /v1/calls?assistant_id=XXX instead of /assistants/XXX/calls
+    const endpoint = `/v1/calls`;
     const queryParams = new URLSearchParams();
+    
+    // Add the assistant_id as a query parameter
+    queryParams.append('assistant_id', assistantId);
     
     if (filters?.limit) {
       queryParams.append('limit', filters.limit.toString());
@@ -199,7 +202,7 @@ export class VapiService {
     }
     
     try {
-      const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+      const url = `${endpoint}?${queryParams.toString()}`;
       const response = await this.request<{ calls: CallAnalysisResult[] }>(url, {
         method: 'GET',
       });
@@ -462,10 +465,8 @@ export class VapiService {
     
     // FIXED: Updated endpoint
     const endpoint = `/v1/campaigns/${campaignId}`;
-    const queryParams = new URLSearchParams();
-    queryParams.append('assistant_id', this.assistantId);
     
-    return this.request<any>(`${endpoint}?${queryParams.toString()}`, {
+    return this.request<any>(endpoint, {
       method: 'GET'
     });
   }
@@ -488,7 +489,7 @@ export class VapiService {
     };
     
     // FIXED: Updated endpoint
-    const endpoint = `/v1/assistants/${this.assistantId}/call`;
+    const endpoint = `/v1/call`;
     
     return this.request<any>(endpoint, {
       method: 'POST',
@@ -502,15 +503,16 @@ export class VapiService {
     }
     
     // FIXED: Updated endpoint
-    const endpoint = `/v1/assistants/${this.assistantId}/calls`;
+    const endpoint = `/v1/calls`;
     const queryParams = new URLSearchParams();
+    queryParams.append('assistant_id', this.assistantId);
     
     if (limit) {
       queryParams.append('limit', limit.toString());
     }
     
     try {
-      const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+      const url = `${endpoint}?${queryParams.toString()}`;
       const response = await this.request<{ calls: any[] }>(url, {
         method: 'GET'
       });
