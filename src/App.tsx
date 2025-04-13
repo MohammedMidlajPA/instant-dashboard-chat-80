@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import SalesDashboard from "./pages/SalesDashboard";
 import SalesPipeline from "./pages/SalesPipeline";
 import CallRecordings from "./pages/CallRecordings";
+import Campaigns from "./pages/Campaigns";
 import Contacts from "./pages/Contacts";
 import OutboundCalling from "./pages/OutboundCalling";
 import Calendar from "./pages/Calendar";
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/sales-dashboard" element={<SalesDashboard />} />
           <Route path="/sales-pipeline" element={<SalesPipeline />} />
           <Route path="/call-recordings" element={<CallRecordings />} />
+          <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/outbound-calling" element={<OutboundCalling />} />
           <Route path="/calendar" element={<Calendar />} />

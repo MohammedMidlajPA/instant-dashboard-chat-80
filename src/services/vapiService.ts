@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -160,6 +159,7 @@ export class VapiService {
     }
   }
 
+  // FIXED ENDPOINT: The correct endpoint seems to be /call/search instead of /assistants/{id}/calls
   async getCallAnalysis(filters?: CallAnalysisFilters): Promise<CallAnalysisResult[]> {
     // If no filters provided, use the stored assistant ID
     const assistantId = filters?.assistantId || this.assistantId;
@@ -168,62 +168,30 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
 
-    // FIXING THE API ENDPOINT: Corrected from 'call-analysis' to 'calls'
-    const params = new URLSearchParams({
+    // Updated endpoint to use /call/search instead of /assistants/{id}/calls
+    const endpoint = `/call/search`;
+    
+    // Build the request body
+    const requestBody = {
       assistant_id: assistantId,
       ...(filters?.startDate && { start_date: filters.startDate }),
       ...(filters?.endDate && { end_date: filters.endDate }),
-      ...(filters?.limit && { limit: filters.limit.toString() })
-    });
+      ...(filters?.limit && { limit: filters.limit })
+    };
 
-    // If fetchAll is true, use pagination to get all results
-    if (filters?.fetchAll) {
-      let allResults: CallAnalysisResult[] = [];
-      let offset = 0;
-      const pageLimit = 100; // Page size for pagination
-      let hasMore = true;
-
-      while (hasMore) {
-        const paginationParams = new URLSearchParams(params);
-        paginationParams.set('limit', pageLimit.toString());
-        paginationParams.set('offset', offset.toString());
-
-        // CORRECTED ENDPOINT: /assistants/{assistant_id}/calls instead of /assistants/call-analysis
-        const endpoint = `/assistants/${assistantId}/calls?${paginationParams.toString()}`;
-        try {
-          const response = await this.request<{ calls: CallAnalysisResult[] }>(endpoint);
-          
-          const results = response.calls || [];
-          allResults = [...allResults, ...results];
-
-          // If we got fewer records than the page limit, there are no more pages
-          if (results.length < pageLimit) {
-            hasMore = false;
-          } else {
-            offset += pageLimit;
-          }
-        } catch (error) {
-          console.error("Error fetching paginated call data:", error);
-          hasMore = false;
-        }
-      }
-
+    try {
+      // Use POST method for search endpoint
+      const response = await this.request<{ calls: CallAnalysisResult[] }>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      });
+      
       // Enhance the results with college-specific data processing
-      return this.processCollegeCallData(allResults);
-    } else {
-      // Standard request with the provided filters
-      // CORRECTED ENDPOINT: /assistants/{assistant_id}/calls instead of /assistants/call-analysis
-      const endpoint = `/assistants/${assistantId}/calls?${params.toString()}`;
-      try {
-        const response = await this.request<{ calls: CallAnalysisResult[] }>(endpoint);
-        
-        // Enhance the results with college-specific data processing
-        return this.processCollegeCallData(response.calls || []);
-      } catch (error) {
-        console.error("Error fetching call data:", error);
-        // Return empty array on error for better handling
-        return [];
-      }
+      return this.processCollegeCallData(response.calls || []);
+    } catch (error) {
+      console.error("Error fetching call data:", error);
+      // Return empty array on error for better handling
+      return [];
     }
   }
 
@@ -456,6 +424,59 @@ export class VapiService {
     return "College Inquiry";
   }
 
+  // Method to create a new outbound call campaign from a file
+  async createCampaign(payload: {
+    name: string;
+    assistant_id?: string;
+    contacts: Array<{
+      phone_number: string;
+      first_name?: string;
+      last_name?: string;
+      [key: string]: any;
+    }>;
+    scheduling?: {
+      start_time?: string;
+      max_concurrent_calls?: number;
+      timezone?: string;
+    };
+    [key: string]: any;
+  }) {
+    // Use stored assistant ID if none provided
+    if (!payload.assistant_id && this.assistantId) {
+      payload.assistant_id = this.assistantId;
+    }
+    
+    if (!payload.assistant_id) {
+      throw new Error("Assistant ID is required");
+    }
+    
+    return this.request<any>('/campaign', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  // Method to get all campaigns
+  async getCampaigns(assistantId?: string) {
+    const id = assistantId || this.assistantId;
+    
+    if (!id) {
+      throw new Error("Assistant ID is required");
+    }
+    
+    return this.request<{ campaigns: any[] }>(`/campaign/search`, {
+      method: 'POST',
+      body: JSON.stringify({ assistant_id: id })
+    });
+  }
+
+  // Method to get a specific campaign
+  async getCampaign(campaignId: string) {
+    return this.request<any>(`/campaign/${campaignId}`, {
+      method: 'GET'
+    });
+  }
+
   async createOutboundCall(payload: {
     recipient: {
       phone_number: string;
@@ -472,7 +493,7 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     
-    return this.request<any>('/outbound_call', {
+    return this.request<any>('/call', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
@@ -486,14 +507,18 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     
-    const params = new URLSearchParams({
-      ...(limit && { limit: limit.toString() })
-    });
-
-    // CORRECTED ENDPOINT: Use /assistants/{assistant_id}/calls instead of /calls
-    const endpoint = `/assistants/${id}/calls?${params.toString()}`;
+    // Updated to use the /call/search endpoint
+    const endpoint = `/call/search`;
+    
     try {
-      const response = await this.request<{ calls: any[] }>(endpoint);
+      const response = await this.request<{ calls: any[] }>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({
+          assistant_id: id,
+          limit: limit || 100
+        })
+      });
+      
       return response.calls || [];
     } catch (error) {
       console.error("Error fetching call recordings:", error);
