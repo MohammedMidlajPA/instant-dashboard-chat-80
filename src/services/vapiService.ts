@@ -35,6 +35,8 @@ export class VapiService {
   private assistantId: string | null = null;
   private baseUrl = "https://api.vapi.ai";
   private isLoading = false;
+  private retryCount = 0;
+  private maxRetries = 3;
 
   constructor(apiKey?: string) {
     // Initialize with provided key if available, but will attempt to fetch from Supabase
@@ -159,15 +161,47 @@ export class VapiService {
         headers
       });
 
+      // Reset retry count on successful request
+      this.retryCount = 0;
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`VAPI API error (${response.status}): ${errorText}`);
+        
+        // Check if we're being rate limited (429) or if server is having issues (5xx)
+        if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
+          // Throw a special error for these cases that might benefit from retries
+          throw new Error(`VAPI API temporarily unavailable (${response.status}): ${errorText}`);
+        }
+        
         throw new Error(`VAPI API error (${response.status}): ${errorText}`);
       }
 
       return await response.json() as T;
     } catch (error) {
       console.error('Error calling VAPI API:', error);
+      
+      // Implement simple retry logic for network errors or server errors
+      if (this.retryCount < this.maxRetries && 
+          (error instanceof TypeError || // Network errors
+           (error instanceof Error && error.message.includes('temporarily unavailable')))) {
+        
+        this.retryCount++;
+        const delay = Math.pow(2, this.retryCount) * 1000; // Exponential backoff
+        console.log(`Retrying request (${this.retryCount}/${this.maxRetries}) after ${delay}ms`);
+        
+        return new Promise((resolve, reject) => {
+          setTimeout(async () => {
+            try {
+              const result = await this.request<T>(endpoint, options);
+              resolve(result);
+            } catch (retryError) {
+              reject(retryError);
+            }
+          }, delay);
+        });
+      }
+      
       toast.error(error instanceof Error ? error.message : 'Failed to call VAPI API');
       throw error;
     }
