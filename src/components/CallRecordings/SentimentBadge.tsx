@@ -7,9 +7,10 @@ interface SentimentBadgeProps {
 
 export const SentimentBadge: React.FC<SentimentBadgeProps> = ({ type }) => {
   const styles = {
-    Positive: "bg-green-100 text-green-800",
-    Neutral: "bg-blue-100 text-blue-800",
-    Negative: "bg-red-100 text-red-800"
+    'Positive': "bg-green-100 text-green-800",
+    'Neutral': "bg-blue-100 text-blue-800",
+    'Negative': "bg-red-100 text-red-800",
+    'Mixed': "bg-amber-100 text-amber-800"
   };
   
   const color = styles[type as keyof typeof styles] || "bg-gray-100 text-gray-800";

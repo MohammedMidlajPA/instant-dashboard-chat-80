@@ -6,9 +6,14 @@ interface CallTypeBadgeProps {
 }
 
 export const CallTypeBadge: React.FC<CallTypeBadgeProps> = ({ type }) => {
-  const color = type === 'Inbound' 
-    ? "bg-purple-100 text-purple-800" 
-    : "bg-blue-100 text-blue-800";
+  const styles = {
+    'Inbound': "bg-purple-100 text-purple-800",
+    'Outbound': "bg-blue-100 text-blue-800",
+    'Transfer': "bg-amber-100 text-amber-800",
+    'Follow-up': "bg-green-100 text-green-800"
+  };
+  
+  const color = styles[type as keyof typeof styles] || "bg-gray-100 text-gray-800";
   
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>

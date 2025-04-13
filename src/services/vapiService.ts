@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,6 +27,7 @@ interface CallAnalysisResult {
   assistant_phone?: string;
   customer_phone?: string;
   recording_url?: string;
+  inquiry_type?: string;
   [key: string]: any; // For any additional fields returned by the API
 }
 
@@ -236,12 +238,26 @@ export class VapiService {
     if (!transcription) return [];
     
     const collegeKeywordSets = [
-      ["admissions", "application", "apply", "acceptance", "deadline"],
-      ["financial aid", "scholarship", "grant", "tuition", "fafsa", "loan"],
-      ["housing", "dorm", "residence", "accommodation", "on-campus"],
-      ["program", "major", "course", "curriculum", "credit", "transfer"],
-      ["campus tour", "visit", "open house", "orientation"],
-      ["transcript", "gpa", "test score", "sat", "act"],
+      ["admissions", "application", "apply", "acceptance", "deadline", "requirements"],
+      ["financial aid", "scholarship", "grant", "tuition", "fafsa", "loan", "payment"],
+      ["housing", "dorm", "residence", "accommodation", "on-campus", "apartment"],
+      ["program", "major", "course", "curriculum", "credit", "transfer", "class"],
+      ["campus tour", "visit", "open house", "orientation", "campus map"],
+      ["transcript", "gpa", "test score", "sat", "act", "prerequisites"],
+      ["graduation", "commencement", "degree", "diploma", "certificate"],
+      ["advisor", "counselor", "professor", "faculty", "department", "dean"],
+      ["registration", "enroll", "sign up", "waitlist", "add/drop", "withdraw"],
+      ["schedule", "timetable", "calendar", "semester", "quarter", "term"],
+      ["student id", "card", "account", "login", "portal", "system"],
+      ["library", "resources", "textbook", "material", "equipment", "technology"],
+      ["extracurricular", "club", "organization", "activity", "involvement"],
+      ["career", "internship", "job", "placement", "employment", "alumni"],
+      ["health", "insurance", "medical", "wellness", "clinic", "counseling"],
+      ["parking", "transportation", "shuttle", "bus", "permit", "commute"],
+      ["email", "contact", "information", "address", "phone", "update"],
+      ["deadline", "due date", "extension", "late", "missed", "reschedule"],
+      ["international", "visa", "foreign", "exchange", "study abroad", "i-20"],
+      ["disability", "accommodation", "accessibility", "service", "support"],
     ];
     
     const foundKeywords: string[] = [];
@@ -269,23 +285,44 @@ export class VapiService {
   private categorizeInquiry(transcription: string = "", keywords: string[]): string {
     if (keywords.includes("admissions") || 
         keywords.includes("application") || 
-        keywords.includes("acceptance")) {
+        keywords.includes("acceptance") ||
+        keywords.includes("requirements") ||
+        keywords.includes("apply")) {
       return "Admissions";
     } else if (keywords.includes("financial aid") || 
                keywords.includes("scholarship") || 
-               keywords.includes("tuition")) {
+               keywords.includes("tuition") ||
+               keywords.includes("payment") ||
+               keywords.includes("fafsa")) {
       return "Financial Aid";
     } else if (keywords.includes("housing") || 
-               keywords.includes("dorm")) {
+               keywords.includes("dorm") ||
+               keywords.includes("residence") ||
+               keywords.includes("apartment")) {
       return "Housing";
     } else if (keywords.includes("program") || 
                keywords.includes("major") || 
-               keywords.includes("course")) {
+               keywords.includes("course") ||
+               keywords.includes("class") ||
+               keywords.includes("credit") ||
+               keywords.includes("transfer")) {
       return "Academic";
     } else if (transcription.toLowerCase().includes("complaint") || 
                transcription.toLowerCase().includes("issue") || 
-               transcription.toLowerCase().includes("problem")) {
+               transcription.toLowerCase().includes("problem") ||
+               transcription.toLowerCase().includes("help") ||
+               transcription.toLowerCase().includes("assistance")) {
       return "Support";
+    } else if (keywords.includes("career") ||
+              keywords.includes("internship") ||
+              keywords.includes("job") ||
+              keywords.includes("employment")) {
+      return "Career Services";
+    } else if (keywords.includes("schedule") ||
+              keywords.includes("appointment") ||
+              keywords.includes("meeting") ||
+              keywords.includes("calendar")) {
+      return "Scheduling";
     }
     
     return "General Inquiry";
@@ -293,6 +330,9 @@ export class VapiService {
 
   // Determine call type if not provided by API
   private determineCallType(call: CallAnalysisResult): string {
+    // Check if the call type is explicitly provided
+    if (call.call_type) return call.call_type;
+    
     // Implement logic to determine if a call is inbound or outbound
     // This is placeholder logic - customize based on your data
     if (call.assistant_phone && call.assistant_phone === call.from) {
@@ -303,29 +343,100 @@ export class VapiService {
 
   // Extract contact name if not provided by API
   private extractContactName(call: CallAnalysisResult): string {
-    // Placeholder - in a real implementation this might parse the transcription
-    // or use metadata from the call
+    // If customer_name is provided, use it
     if (call.customer_name) return call.customer_name;
+    
+    // Try to extract a name from the transcription if available
+    if (call.transcription) {
+      // Look for common introduction patterns in transcriptions
+      const namePatterns = [
+        /my name is ([A-Za-z\s]+)/i,
+        /this is ([A-Za-z\s]+) (calling|speaking)/i,
+        /hello[\s,]+(\w+)/i,
+        /hi[\s,]+(\w+)/i
+      ];
+      
+      for (const pattern of namePatterns) {
+        const match = call.transcription.match(pattern);
+        if (match && match[1]) {
+          // Clean up the extracted name
+          const name = match[1].trim();
+          // Avoid returning very short names or words that are likely not names
+          if (name.length > 2 && !['the', 'and', 'but', 'for', 'from'].includes(name.toLowerCase())) {
+            return name;
+          }
+        }
+      }
+    }
+    
+    // If we can't extract a name, use the phone number with masking
     if (call.from && call.from !== call.assistant_phone) {
       return `Caller ${call.from.slice(-4)}`;
     }
     if (call.to && call.to !== call.assistant_phone) {
       return `Caller ${call.to.slice(-4)}`;
     }
+    
     return "Unknown Caller";
   }
 
   // Determine college affiliation based on call data
   private determineAffiliation(call: CallAnalysisResult): string {
-    // Placeholder - in a real implementation this might use 
-    // a database lookup or parse the transcription
-    if (call.transcription?.toLowerCase().includes("high school")) {
-      return "Prospective Student";
-    } else if (call.transcription?.toLowerCase().includes("transfer")) {
-      return "Transfer Applicant";
-    } else if (call.transcription?.toLowerCase().includes("parent")) {
-      return "Parent/Guardian";
+    // Try to extract affiliation from transcription
+    if (call.transcription) {
+      const transcription = call.transcription.toLowerCase();
+      
+      // Check for high school affiliation
+      if (transcription.includes("high school") || 
+          transcription.includes("secondary school") ||
+          transcription.includes("senior year")) {
+        return "High School Student";
+      }
+      
+      // Check for transfer student
+      if (transcription.includes("transfer") || 
+          transcription.includes("community college") ||
+          transcription.includes("credits from")) {
+        return "Transfer Applicant";
+      }
+      
+      // Check for parent/guardian
+      if (transcription.includes("my son") || 
+          transcription.includes("my daughter") ||
+          transcription.includes("my child") ||
+          transcription.includes("parent") ||
+          transcription.includes("guardian")) {
+        return "Parent/Guardian";
+      }
+      
+      // Check for graduate student
+      if (transcription.includes("graduate program") || 
+          transcription.includes("master's") ||
+          transcription.includes("phd") ||
+          transcription.includes("doctoral")) {
+        return "Graduate Applicant";
+      }
+      
+      // Check for current student
+      if (transcription.includes("my classes") || 
+          transcription.includes("my course") ||
+          transcription.includes("my professor") ||
+          transcription.includes("my transcript") ||
+          transcription.includes("my schedule")) {
+        return "Current Student";
+      }
+      
+      // Check for faculty/staff
+      if (transcription.includes("faculty") || 
+          transcription.includes("professor") ||
+          transcription.includes("instructor") ||
+          transcription.includes("teach") ||
+          transcription.includes("department chair")) {
+        return "Faculty/Staff";
+      }
     }
+    
+    // Default affiliation if none of the above matches
     return "College Inquiry";
   }
 

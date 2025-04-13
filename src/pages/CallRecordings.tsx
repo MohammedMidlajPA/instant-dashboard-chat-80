@@ -1,158 +1,41 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { VapiApiKeyForm } from "@/components/VapiApiKeyForm";
 import { 
-  PlayIcon, 
-  PauseIcon, 
-  DownloadIcon, 
-  ClockIcon, 
-  CalendarIcon, 
-  PhoneIcon, 
-  UserIcon, 
-  MessageSquareIcon,
   SearchIcon,
   RefreshCw
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { vapiService } from "@/services/vapiService";
-import { toast } from "sonner";
+import { VapiApiKeyForm } from "@/components/VapiApiKeyForm";
 import { CallRecordingsList } from "@/components/CallRecordings/CallRecordingsList";
 import { AnalyticsSummaryCards } from "@/components/CallRecordings/AnalyticsSummaryCards";
-
-interface Recording {
-  id: string;
-  contact: string;
-  company: string;
-  date: string;
-  duration: string;
-  type: 'Outbound' | 'Inbound';
-  sentiment: 'Positive' | 'Neutral' | 'Negative';
-  keywords: string[];
-}
-
-const placeholderRecordings: Recording[] = [
-  { 
-    id: "1", 
-    contact: 'John Smith', 
-    company: 'ABC Corporation', 
-    date: '2023-05-15', 
-    duration: '12:43', 
-    type: 'Outbound',
-    sentiment: 'Positive',
-    keywords: ['admissions inquiry', 'application deadline', 'scholarship'],
-  },
-  { 
-    id: "2", 
-    contact: 'Sarah Johnson', 
-    company: 'Local High School', 
-    date: '2023-05-14', 
-    duration: '8:21', 
-    type: 'Inbound',
-    sentiment: 'Neutral',
-    keywords: ['campus tour', 'housing', 'orientation'],
-  },
-  { 
-    id: "3", 
-    contact: 'Michael Brown', 
-    company: 'Community College', 
-    date: '2023-05-13', 
-    duration: '15:37', 
-    type: 'Outbound',
-    sentiment: 'Positive',
-    keywords: ['transfer credits', 'program requirements', 'application'],
-  },
-  { 
-    id: "4", 
-    contact: 'Emily Wilson', 
-    company: 'Wilson Family', 
-    date: '2023-05-12', 
-    duration: '9:54', 
-    type: 'Outbound',
-    sentiment: 'Negative',
-    keywords: ['financial aid', 'tuition payment', 'deadline'],
-  },
-  { 
-    id: "5", 
-    contact: 'David Lee', 
-    company: 'Graduate Applicant', 
-    date: '2023-05-11', 
-    duration: '11:12', 
-    type: 'Inbound',
-    sentiment: 'Neutral',
-    keywords: ['graduate program', 'application status', 'department contact'],
-  }
-];
+import { MonthlyCallsChart } from "@/components/CallRecordings/MonthlyCallsChart";
+import { SentimentDistribution } from "@/components/CallRecordings/SentimentDistribution";
+import { TopKeywords } from "@/components/CallRecordings/TopKeywords";
+import { useCollegeCallRecordings } from "@/hooks/useCollegeCallRecordings";
 
 const CallRecordings = () => {
   const [isApiKeySet, setIsApiKeySet] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [recordings, setRecordings] = useState<Recording[]>(placeholderRecordings);
   const [searchTerm, setSearchTerm] = useState("");
   
-  const fetchRecordings = async () => {
-    if (!isApiKeySet) return;
-    
-    setIsLoading(true);
-    try {
-      const assistantId = vapiService.getAssistantId();
-      if (!assistantId) {
-        toast.error("Assistant ID not found. Please check your configuration.");
-        return;
-      }
-      
-      const callData = await vapiService.getCallAnalysis({ 
-        assistantId, 
-        fetchAll: false,
-        limit: 10 
-      });
-      
-      if (callData && callData.length > 0) {
-        const formattedData: Recording[] = callData.map(call => ({
-          id: call.id,
-          contact: call.contact_name || 'Unknown',
-          company: call.company_name || 'Unknown College Applicant',
-          date: call.call_date,
-          duration: formatDuration(call.duration),
-          type: (call.call_type === 'inbound' ? 'Inbound' : 'Outbound') as 'Inbound' | 'Outbound',
-          sentiment: (call.sentiment?.charAt(0).toUpperCase() + call.sentiment?.slice(1)) as 'Positive' | 'Neutral' | 'Negative',
-          keywords: call.keywords || [],
-        }));
-        
-        setRecordings(formattedData);
-      } else {
-        toast.info("No call recordings found. Using placeholder data.");
-        setRecordings(placeholderRecordings);
-      }
-    } catch (error) {
-      console.error("Error fetching recordings:", error);
-      toast.error("Failed to load call recordings");
-      setRecordings(placeholderRecordings);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const formatDuration = (seconds: number): string => {
-    if (!seconds) return "00:00";
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-  
-  useEffect(() => {
-    if (isApiKeySet) {
-      fetchRecordings();
-    }
-  }, [isApiKeySet]);
-  
-  const filteredRecordings = recordings.filter(recording => {
-    const searchableText = `${recording.contact} ${recording.company} ${recording.keywords.join(' ')}`.toLowerCase();
-    return searchableText.includes(searchTerm.toLowerCase());
+  const {
+    recordings,
+    stats,
+    isLoading,
+    fetchRecordings
+  } = useCollegeCallRecordings({
+    autoFetch: isApiKeySet,
+    limit: 100
   });
+
+  const filteredRecordings = searchTerm 
+    ? recordings.filter(recording => {
+        const searchableText = `${recording.contact} ${recording.company} ${recording.keywords.join(' ')}`.toLowerCase();
+        return searchableText.includes(searchTerm.toLowerCase());
+      })
+    : recordings;
 
   return (
     <DashboardLayout>
@@ -177,32 +60,53 @@ const CallRecordings = () => {
 
         {isApiKeySet && (
           <>
-            <AnalyticsSummaryCards />
+            <AnalyticsSummaryCards 
+              totalCalls={stats.totalCalls}
+              totalTalkTime={stats.totalTalkTime}
+              uniqueContacts={stats.uniqueContacts}
+              admissionsInquiries={stats.admissionsInquiries}
+            />
 
-            <Card className="shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg font-medium">Recent Calls</CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={fetchRecordings} 
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                  <span className="ml-2">Refresh</span>
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <CallRecordingsList 
-                  recordings={filteredRecordings} 
-                  isLoading={isLoading} 
-                />
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+              <div className="lg:col-span-2">
+                <MonthlyCallsChart data={stats.monthlyData} />
+              </div>
+              <div>
+                <SentimentDistribution data={stats.sentimentDistribution} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+              <div>
+                <TopKeywords keywords={stats.topKeywords} />
+              </div>
+              <div className="lg:col-span-2">
+                <Card className="shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg font-medium">Recent Calls</CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={fetchRecordings} 
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                      <span className="ml-2">Refresh</span>
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <CallRecordingsList 
+                      recordings={filteredRecordings} 
+                      isLoading={isLoading} 
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </>
         )}
       </div>
