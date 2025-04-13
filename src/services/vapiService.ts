@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,6 +18,14 @@ interface CallAnalysisResult {
   sentiment: string;
   transcription: string;
   keywords: string[];
+  call_type?: string;
+  contact_name?: string;
+  company_name?: string;
+  ended_reason?: string;
+  success_evaluation?: number;
+  assistant_phone?: string;
+  customer_phone?: string;
+  recording_url?: string;
   [key: string]: any; // For any additional fields returned by the API
 }
 
@@ -190,13 +197,136 @@ export class VapiService {
         }
       }
 
-      return allResults;
+      // Enhance the results with college-specific data processing
+      return this.processCollegeCallData(allResults);
     } else {
       // Standard request with the provided filters
       const endpoint = `/assistants/call-analysis?${params.toString()}`;
       const response = await this.request<{ results: CallAnalysisResult[] }>(endpoint);
-      return response.results || [];
+      
+      // Enhance the results with college-specific data processing
+      return this.processCollegeCallData(response.results || []);
     }
+  }
+
+  // Process call data specifically for college use case
+  private processCollegeCallData(calls: CallAnalysisResult[]): CallAnalysisResult[] {
+    return calls.map(call => {
+      // Extract college-specific keywords
+      const collegeKeywords = this.extractCollegeKeywords(call.transcription);
+      
+      // Determine the type of inquiry (admissions, financial aid, etc.)
+      const inquiryType = this.categorizeInquiry(call.transcription, collegeKeywords);
+      
+      // Enhance with additional processing for college environment
+      return {
+        ...call,
+        // Add derived fields for the college context
+        call_type: call.call_type || this.determineCallType(call),
+        contact_name: call.contact_name || this.extractContactName(call),
+        company_name: call.company_name || this.determineAffiliation(call),
+        keywords: collegeKeywords.length > 0 ? collegeKeywords : (call.keywords || []),
+        inquiry_type: inquiryType,
+      };
+    });
+  }
+
+  // Extract college-relevant keywords from transcription
+  private extractCollegeKeywords(transcription: string = ""): string[] {
+    if (!transcription) return [];
+    
+    const collegeKeywordSets = [
+      ["admissions", "application", "apply", "acceptance", "deadline"],
+      ["financial aid", "scholarship", "grant", "tuition", "fafsa", "loan"],
+      ["housing", "dorm", "residence", "accommodation", "on-campus"],
+      ["program", "major", "course", "curriculum", "credit", "transfer"],
+      ["campus tour", "visit", "open house", "orientation"],
+      ["transcript", "gpa", "test score", "sat", "act"],
+    ];
+    
+    const foundKeywords: string[] = [];
+    
+    collegeKeywordSets.forEach(set => {
+      set.forEach(keyword => {
+        if (transcription.toLowerCase().includes(keyword.toLowerCase())) {
+          // Add the primary category keyword (first in the set)
+          if (!foundKeywords.includes(set[0])) {
+            foundKeywords.push(set[0]);
+          }
+          
+          // Also add the specific matching keyword if it's not the category itself
+          if (keyword !== set[0] && !foundKeywords.includes(keyword)) {
+            foundKeywords.push(keyword);
+          }
+        }
+      });
+    });
+    
+    return foundKeywords;
+  }
+
+  // Categorize the type of inquiry based on transcription and keywords
+  private categorizeInquiry(transcription: string = "", keywords: string[]): string {
+    if (keywords.includes("admissions") || 
+        keywords.includes("application") || 
+        keywords.includes("acceptance")) {
+      return "Admissions";
+    } else if (keywords.includes("financial aid") || 
+               keywords.includes("scholarship") || 
+               keywords.includes("tuition")) {
+      return "Financial Aid";
+    } else if (keywords.includes("housing") || 
+               keywords.includes("dorm")) {
+      return "Housing";
+    } else if (keywords.includes("program") || 
+               keywords.includes("major") || 
+               keywords.includes("course")) {
+      return "Academic";
+    } else if (transcription.toLowerCase().includes("complaint") || 
+               transcription.toLowerCase().includes("issue") || 
+               transcription.toLowerCase().includes("problem")) {
+      return "Support";
+    }
+    
+    return "General Inquiry";
+  }
+
+  // Determine call type if not provided by API
+  private determineCallType(call: CallAnalysisResult): string {
+    // Implement logic to determine if a call is inbound or outbound
+    // This is placeholder logic - customize based on your data
+    if (call.assistant_phone && call.assistant_phone === call.from) {
+      return "outbound";
+    }
+    return "inbound";
+  }
+
+  // Extract contact name if not provided by API
+  private extractContactName(call: CallAnalysisResult): string {
+    // Placeholder - in a real implementation this might parse the transcription
+    // or use metadata from the call
+    if (call.customer_name) return call.customer_name;
+    if (call.from && call.from !== call.assistant_phone) {
+      return `Caller ${call.from.slice(-4)}`;
+    }
+    if (call.to && call.to !== call.assistant_phone) {
+      return `Caller ${call.to.slice(-4)}`;
+    }
+    return "Unknown Caller";
+  }
+
+  // Determine college affiliation based on call data
+  private determineAffiliation(call: CallAnalysisResult): string {
+    // Placeholder - in a real implementation this might use 
+    // a database lookup or parse the transcription
+    if (call.transcription?.toLowerCase().includes("high school")) {
+      return "Prospective Student";
+    } else if (call.transcription?.toLowerCase().includes("transfer")) {
+      return "Transfer Applicant";
+    } else if (call.transcription?.toLowerCase().includes("parent")) {
+      return "Parent/Guardian";
+    }
+    return "College Inquiry";
   }
 
   async createOutboundCall(payload: {
@@ -238,8 +368,6 @@ export class VapiService {
     const response = await this.request<{ calls: any[] }>(endpoint);
     return response.calls || [];
   }
-
-  // Add more VAPI API methods as needed...
 }
 
 // Create and export a singleton instance
