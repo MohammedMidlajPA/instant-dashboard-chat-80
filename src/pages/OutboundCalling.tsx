@@ -13,7 +13,8 @@ import {
   CheckIcon, 
   FileTextIcon, 
   AlertCircleIcon,
-  PlayIcon
+  PlayIcon,
+  Plus
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -248,7 +249,7 @@ const OutboundCalling = () => {
             ) : (
               <>
                 <Button variant="outline" onClick={() => setIsCreatingCampaign(true)}>
-                  <PlusIcon className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4 mr-2" />
                   New Campaign
                 </Button>
                 
@@ -604,7 +605,7 @@ const OutboundCalling = () => {
                         <CardDescription>Manage your active and scheduled campaigns</CardDescription>
                       </div>
                       <Button onClick={() => setIsCreatingCampaign(true)}>
-                        <PlusIcon className="h-4 w-4 mr-2" />
+                        <Plus className="h-4 w-4 mr-2" />
                         New Campaign
                       </Button>
                     </div>
