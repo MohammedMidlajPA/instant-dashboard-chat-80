@@ -1,6 +1,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AnalyticsCardProps {
   title: string;
@@ -12,6 +13,7 @@ interface AnalyticsCardProps {
     isPositive: boolean;
   };
   className?: string;
+  isLoading?: boolean;
 }
 
 export function AnalyticsCard({
@@ -21,6 +23,7 @@ export function AnalyticsCard({
   icon,
   trend,
   className,
+  isLoading = false,
 }: AnalyticsCardProps) {
   return (
     <Card className={cn("dashboard-card", className)}>
@@ -29,21 +32,30 @@ export function AnalyticsCard({
         {icon && <div className="text-muted-foreground">{icon}</div>}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {(description || trend) && (
-          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-            {trend && (
-              <span
-                className={cn(
-                  "inline-flex items-center",
-                  trend.isPositive ? "text-green-500" : "text-red-500"
+        {isLoading ? (
+          <>
+            <Skeleton className="h-8 w-24 mb-1" />
+            <Skeleton className="h-4 w-32" />
+          </>
+        ) : (
+          <>
+            <div className="text-2xl font-bold">{value}</div>
+            {(description || trend) && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                {trend && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center",
+                      trend.isPositive ? "text-green-500" : "text-red-500"
+                    )}
+                  >
+                    {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
+                  </span>
                 )}
-              >
-                {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
-              </span>
+                {description && <span>{description}</span>}
+              </p>
             )}
-            {description && <span>{description}</span>}
-          </p>
+          </>
         )}
       </CardContent>
     </Card>

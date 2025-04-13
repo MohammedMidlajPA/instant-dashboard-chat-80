@@ -22,8 +22,18 @@ const Index = () => {
       try {
         setLoading(true);
         
-        // Attempt to fetch call data from VAPI
+        // Get the assistant ID from the service
+        const assistantId = vapiService.getAssistantId();
+        
+        if (!assistantId) {
+          toast.error("Assistant ID not configured. Using sample data.");
+          setLoading(false);
+          return;
+        }
+        
+        // Attempt to fetch call data from VAPI with the proper assistantId
         const callData = await vapiService.getCallAnalysis({
+          assistantId,
           limit: 100
         });
         
