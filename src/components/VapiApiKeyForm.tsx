@@ -14,7 +14,7 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
   const [isApiKeySet, setIsApiKeySet] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Use the provided assistant ID 
+  // Use the correct VAPI public key provided: b6860fc3-a9da-4741-83ce-cb07c5725486
   const defaultAssistantId = "b6860fc3-a9da-4741-83ce-cb07c5725486";
 
   useEffect(() => {
@@ -63,7 +63,7 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
   const handleRefreshCredentials = async () => {
     setIsLoading(true);
     try {
-      // Ensure we have the default assistant ID set
+      // Ensure we have the correct default assistant ID set
       localStorage.setItem('vapi_assistant_id', defaultAssistantId);
       
       await vapiService.fetchCredentials();

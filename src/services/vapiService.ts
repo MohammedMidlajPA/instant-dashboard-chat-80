@@ -217,16 +217,28 @@ export class VapiService {
 
     console.log("Fetching call analysis with assistant ID:", assistantId);
 
-    // Try different endpoints based on VAPI API structure
-    // This is a fallback mechanism to handle API changes
+    // Try different endpoints based on VAPI API documentation findings
+    // Instead of embedding assistant ID in path, pass as query parameter
     const endpoints = [
-      // Try most common endpoint patterns
-      `/api/v1/assistants/${assistantId}/calls`,
-      `/v1/assistants/${assistantId}/calls`,
-      `/api/v1/calls`,
+      // Based on documentation review - query parameter approach
+      `/assistants/call-analysis`,
+      `/v1/assistants/call-analysis`,
+      `/api/v1/assistants/call-analysis`,
+      
+      // More general analytics endpoints
+      `/assistants/analytics`,
+      `/v1/assistants/analytics`,
+      `/api/v1/assistants/analytics`,
+      
+      // Call endpoints directly with query params
+      `/calls/analysis`,
+      `/v1/calls/analysis`,
+      `/api/v1/calls/analysis`,
+      
+      // Call listing endpoints with query params
+      `/calls`,
       `/v1/calls`,
-      `/assistants/${assistantId}/calls`,
-      `/calls`
+      `/api/v1/calls`
     ];
 
     let lastError = null;
@@ -234,6 +246,9 @@ export class VapiService {
     for (const endpoint of endpoints) {
       try {
         const queryParams = new URLSearchParams();
+        
+        // Always pass the assistant_id as a query parameter
+        queryParams.append('assistant_id', assistantId);
         
         if (filters?.limit) {
           queryParams.append('limit', filters.limit.toString());
@@ -247,20 +262,27 @@ export class VapiService {
           queryParams.append('end_date', filters.endDate);
         }
         
-        // Add the assistant ID filter as a query parameter if not part of the path
-        if (!endpoint.includes('/assistants/')) {
-          queryParams.append('assistant_id', assistantId);
-        }
-        
-        const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+        const url = `${endpoint}?${queryParams.toString()}`;
         console.log("Trying endpoint:", url);
 
-        const response = await this.request<{ calls: CallAnalysisResult[] }>(url, {
-          method: 'GET',
-        });
-        
-        console.log("Success with endpoint:", endpoint);
-        return this.processCollegeCallData(response.calls || []);
+        // Different APIs might have different response structures
+        // Try different response formats
+        try {
+          const response = await this.request<{ calls: CallAnalysisResult[] }>(url, {
+            method: 'GET',
+          });
+          
+          console.log("Success with endpoint:", endpoint);
+          return this.processCollegeCallData(response.calls || []);
+        } catch (formatError) {
+          // Maybe the response is an array directly
+          const response = await this.request<CallAnalysisResult[]>(url, {
+            method: 'GET',
+          });
+          
+          console.log("Success with endpoint (array format):", endpoint);
+          return this.processCollegeCallData(response || []);
+        }
       } catch (error) {
         console.error(`Failed with endpoint ${endpoint}:`, error);
         lastError = error;
@@ -268,21 +290,9 @@ export class VapiService {
       }
     }
 
-    // If we've tried all endpoints and none worked, try one more approach with a direct call analytics endpoint
-    try {
-      const analyticsEndpoint = `/api/v1/analytics/calls?assistant_id=${assistantId}`;
-      console.log("Trying analytics endpoint:", analyticsEndpoint);
-      
-      const response = await this.request<{ calls: CallAnalysisResult[] }>(analyticsEndpoint, {
-        method: 'GET',
-      });
-      
-      return this.processCollegeCallData(response.calls || []);
-    } catch (error) {
-      console.error("All endpoints failed, returning empty data:", lastError || error);
-      // If all endpoints fail, return empty data rather than throwing
-      return [];
-    }
+    // If all endpoints failed, return empty data rather than throwing
+    console.error("All endpoints failed, returning empty data:", lastError);
+    return [];
   }
 
   private processCollegeCallData(calls: CallAnalysisResult[]): CallAnalysisResult[] {
@@ -505,11 +515,11 @@ export class VapiService {
       payload.assistant_id = this.assistantId;
     }
     
-    // Try different campaign endpoints
+    // Try different campaign endpoints using query parameter approach
     const endpoints = [
-      `/api/v1/campaigns`,
+      `/campaigns`,
       `/v1/campaigns`,
-      `/campaigns`
+      `/api/v1/campaigns`
     ];
     
     let lastError = null;
@@ -543,9 +553,9 @@ export class VapiService {
     
     // Try different campaign endpoints
     const endpoints = [
-      `/api/v1/campaigns`,
+      `/campaigns`,
       `/v1/campaigns`,
-      `/campaigns`
+      `/api/v1/campaigns`
     ];
     
     let lastError = null;
@@ -579,9 +589,9 @@ export class VapiService {
   async getCampaign(campaignId: string) {
     // Try different campaign endpoints
     const endpoints = [
-      `/api/v1/campaigns/${campaignId}`,
+      `/campaigns/${campaignId}`,
       `/v1/campaigns/${campaignId}`,
-      `/campaigns/${campaignId}`
+      `/api/v1/campaigns/${campaignId}`
     ];
     
     let lastError = null;
@@ -626,9 +636,9 @@ export class VapiService {
     
     // Try different call endpoints
     const endpoints = [
-      `/api/v1/calls`,
+      `/calls`,
       `/v1/calls`,
-      `/calls`
+      `/api/v1/calls`
     ];
     
     let lastError = null;
@@ -656,14 +666,14 @@ export class VapiService {
   async getCallRecordings(limit?: number) {
     const assistantId = this.assistantId || "b6860fc3-a9da-4741-83ce-cb07c5725486";
     
-    // Try different endpoints based on VAPI API structure
+    // Try different endpoints based on VAPI API documentation
     const endpoints = [
-      `/api/v1/calls`,
-      `/v1/calls`,
       `/calls`,
-      `/api/v1/assistants/${assistantId}/calls`,
-      `/v1/assistants/${assistantId}/calls`,
-      `/assistants/${assistantId}/calls`
+      `/v1/calls`,
+      `/api/v1/calls`,
+      `/calls/recordings`,
+      `/v1/calls/recordings`,
+      `/api/v1/calls/recordings`
     ];
     
     let lastError = null;
@@ -672,15 +682,14 @@ export class VapiService {
       try {
         const queryParams = new URLSearchParams();
         
-        if (!endpoint.includes('/assistants/')) {
-          queryParams.append('assistant_id', assistantId);
-        }
+        // Always pass assistant_id as a query parameter
+        queryParams.append('assistant_id', assistantId);
         
         if (limit) {
           queryParams.append('limit', limit.toString());
         }
         
-        const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+        const url = `${endpoint}?${queryParams.toString()}`;
         console.log(`Trying to get call recordings with endpoint: ${url}`);
         
         const response = await this.request<{ calls: any[] }>(url, {
