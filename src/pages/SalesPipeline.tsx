@@ -5,20 +5,20 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 
 const stages = [
-  { id: 'prospect', name: 'Prospect', color: 'bg-blue-100 text-blue-800', count: 16, value: '$284,500' },
-  { id: 'qualified', name: 'Qualified', color: 'bg-purple-100 text-purple-800', count: 12, value: '$195,200' },
-  { id: 'proposal', name: 'Proposal', color: 'bg-orange-100 text-orange-800', count: 8, value: '$143,000' },
-  { id: 'negotiation', name: 'Negotiation', color: 'bg-amber-100 text-amber-800', count: 5, value: '$97,500' },
-  { id: 'closed', name: 'Closed Won', color: 'bg-green-100 text-green-800', count: 7, value: '$124,300' },
+  { id: 'inquiry', name: 'Initial Inquiry', color: 'bg-blue-100 text-blue-800', count: 16, value: '16 students' },
+  { id: 'applied', name: 'Application Submitted', color: 'bg-purple-100 text-purple-800', count: 12, value: '12 students' },
+  { id: 'interview', name: 'Interview Scheduled', color: 'bg-orange-100 text-orange-800', count: 8, value: '8 students' },
+  { id: 'review', name: 'Under Review', color: 'bg-amber-100 text-amber-800', count: 5, value: '5 students' },
+  { id: 'accepted', name: 'Accepted', color: 'bg-green-100 text-green-800', count: 7, value: '7 students' },
 ];
 
-const deals = [
-  { id: 1, name: 'Enterprise Solution for ABC Corp', value: '$42,500', company: 'ABC Corporation', probability: '60%', dueDate: '2023-06-15', stage: 'prospect' },
-  { id: 2, name: 'Software License Renewal', value: '$28,000', company: 'XYZ Industries', probability: '90%', dueDate: '2023-05-30', stage: 'qualified' },
-  { id: 3, name: 'Cloud Migration Project', value: '$65,000', company: 'Global Tech', probability: '75%', dueDate: '2023-07-10', stage: 'proposal' },
-  { id: 4, name: 'Security Assessment', value: '$18,500', company: 'SecureNet Inc.', probability: '50%', dueDate: '2023-06-22', stage: 'prospect' },
-  { id: 5, name: 'Data Analytics Platform', value: '$54,000', company: 'DataVision Co.', probability: '85%', dueDate: '2023-06-05', stage: 'negotiation' },
-  { id: 6, name: 'Managed Services Contract', value: '$72,000', company: 'TechCare Solutions', probability: '95%', dueDate: '2023-05-28', stage: 'closed' },
+const prospectiveStudents = [
+  { id: 1, name: 'Jason Smith', value: 'Computer Science', company: 'Lincoln High School', probability: '60%', dueDate: '2023-06-15', stage: 'inquiry' },
+  { id: 2, name: 'Sarah Johnson', value: 'Biology', company: 'Transfer Student', probability: '90%', dueDate: '2023-05-30', stage: 'applied' },
+  { id: 3, name: 'Michael Brown', value: 'Engineering', company: 'Community College', probability: '75%', dueDate: '2023-07-10', stage: 'interview' },
+  { id: 4, name: 'Emily Wilson', value: 'Psychology', company: 'Wilson Family', probability: '50%', dueDate: '2023-06-22', stage: 'inquiry' },
+  { id: 5, name: 'David Lee', value: 'Business', company: 'Graduate Applicant', probability: '85%', dueDate: '2023-06-05', stage: 'review' },
+  { id: 6, name: 'Sophia Garcia', value: 'Education', company: 'Garcia Academy', probability: '95%', dueDate: '2023-05-28', stage: 'accepted' },
 ];
 
 const SalesPipeline = () => {
@@ -27,12 +27,12 @@ const SalesPipeline = () => {
       <div className="space-y-6 animate-fade-in">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">Sales Pipeline</h1>
-            <p className="text-muted-foreground">Track and manage your deals through the sales process</p>
+            <h1 className="text-2xl font-bold">Student Recruitment Pipeline</h1>
+            <p className="text-muted-foreground">Track and manage prospective students through the admissions process</p>
           </div>
           <Button>
             <PlusIcon className="h-4 w-4 mr-2" />
-            Add Deal
+            Add Student
           </Button>
         </div>
 
@@ -41,19 +41,19 @@ const SalesPipeline = () => {
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Total Pipeline Value</h3>
-                <p className="text-2xl font-bold mt-1">$844,500</p>
+                <h3 className="text-sm font-medium text-gray-500">Total Prospects</h3>
+                <p className="text-2xl font-bold mt-1">48 students</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Weighted Pipeline Value</h3>
-                <p className="text-2xl font-bold mt-1">$591,150</p>
+                <h3 className="text-sm font-medium text-gray-500">Application Rate</h3>
+                <p className="text-2xl font-bold mt-1">75%</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Average Deal Size</h3>
-                <p className="text-2xl font-bold mt-1">$40,214</p>
+                <h3 className="text-sm font-medium text-gray-500">Average Response Time</h3>
+                <p className="text-2xl font-bold mt-1">1.2 days</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Close Rate</h3>
+                <h3 className="text-sm font-medium text-gray-500">Acceptance Rate</h3>
                 <p className="text-2xl font-bold mt-1">28%</p>
               </div>
             </div>
@@ -74,24 +74,24 @@ const SalesPipeline = () => {
                 </div>
                 
                 <div className="space-y-3">
-                  {deals.filter(deal => deal.stage === stage.id).map((deal) => (
-                    <Card key={deal.id} className="shadow-sm bg-white">
+                  {prospectiveStudents.filter(student => student.stage === stage.id).map((student) => (
+                    <Card key={student.id} className="shadow-sm bg-white">
                       <CardContent className="p-4">
-                        <h3 className="font-medium">{deal.name}</h3>
+                        <h3 className="font-medium">{student.name}</h3>
                         <div className="flex justify-between items-center mt-2 text-sm">
-                          <span className="text-gray-500">{deal.company}</span>
-                          <span className="font-medium">{deal.value}</span>
+                          <span className="text-gray-500">{student.company}</span>
+                          <span className="font-medium">{student.value}</span>
                         </div>
                         <div className="flex justify-between mt-2 text-xs text-gray-500">
-                          <span>Due: {new Date(deal.dueDate).toLocaleDateString()}</span>
-                          <span>Prob: {deal.probability}</span>
+                          <span>Due: {new Date(student.dueDate).toLocaleDateString()}</span>
+                          <span>Interest: {student.probability}</span>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                   <Button variant="ghost" className="w-full text-sm">
                     <PlusIcon className="h-3 w-3 mr-1" />
-                    Add Deal
+                    Add Student
                   </Button>
                 </div>
               </div>
