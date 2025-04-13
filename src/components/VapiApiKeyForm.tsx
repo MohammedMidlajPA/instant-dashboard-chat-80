@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { vapiService } from "@/services/vapiService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VapiApiKeyFormProps {
   onApiKeySet?: (isSet: boolean) => void;
@@ -13,14 +14,32 @@ interface VapiApiKeyFormProps {
 export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
   const [apiKey, setApiKey] = useState("");
   const [isApiKeySet, setIsApiKeySet] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if API key is already set
-    const existingKey = vapiService.getApiKey();
-    setIsApiKeySet(!!existingKey);
-    if (existingKey && onApiKeySet) {
-      onApiKeySet(true);
-    }
+    const checkApiKey = async () => {
+      setIsLoading(true);
+      try {
+        await vapiService.fetchCredentials();
+        const existingKey = vapiService.getApiKey();
+        const existingAssistantId = vapiService.getAssistantId();
+        
+        const hasCredentials = !!existingKey && !!existingAssistantId;
+        setIsApiKeySet(hasCredentials);
+        
+        if (hasCredentials && onApiKeySet) {
+          onApiKeySet(true);
+        }
+      } catch (error) {
+        console.error("Error checking API key:", error);
+        toast.error("Failed to check API key status");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkApiKey();
   }, [onApiKeySet]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -60,25 +79,44 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">VAPI API Configuration</CardTitle>
         <CardDescription>
-          {isApiKeySet 
-            ? "Your VAPI API key is configured" 
-            : "Set your VAPI API key to enable AI calling features"}
+          {isLoading 
+            ? "Checking API configuration..." 
+            : isApiKeySet 
+              ? "Your VAPI API key is configured" 
+              : "Set your VAPI API key to enable AI calling features"}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {!isApiKeySet ? (
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            <Input
-              type="password"
-              placeholder="Enter VAPI API Key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit">
-              Set Key
+        {isLoading ? (
+          <div className="flex items-center justify-center py-2">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+            <span className="ml-2 text-sm text-gray-500">Checking configuration...</span>
+          </div>
+        ) : !isApiKeySet ? (
+          <div className="space-y-4">
+            <div className="text-sm text-amber-600">
+              API key is now configured through Supabase. No manual entry needed.
+            </div>
+            <Button 
+              onClick={async () => {
+                setIsLoading(true);
+                await vapiService.fetchCredentials();
+                const hasKey = !!vapiService.getApiKey() && !!vapiService.getAssistantId();
+                setIsApiKeySet(hasKey);
+                setIsLoading(false);
+                
+                if (hasKey) {
+                  toast.success("VAPI credentials successfully loaded");
+                  if (onApiKeySet) onApiKeySet(true);
+                } else {
+                  toast.error("Failed to load VAPI credentials");
+                }
+              }}
+              className="w-full"
+            >
+              Refresh Credentials
             </Button>
-          </form>
+          </div>
         ) : (
           <div className="flex items-center justify-between">
             <div className="text-sm text-green-600 flex items-center gap-2">

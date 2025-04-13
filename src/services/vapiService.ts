@@ -1,5 +1,6 @@
 
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CallAnalysisFilters {
   assistantId: string;
@@ -23,10 +24,64 @@ interface CallAnalysisResult {
 
 export class VapiService {
   private apiKey: string | null = null;
+  private assistantId: string | null = null;
   private baseUrl = "https://api.vapi.ai";
+  private isLoading = false;
 
   constructor(apiKey?: string) {
+    // Initialize with provided key if available, but will attempt to fetch from Supabase
     this.apiKey = apiKey || null;
+    
+    // Automatically attempt to fetch credentials on initialization
+    this.fetchCredentials();
+  }
+
+  async fetchCredentials(): Promise<boolean> {
+    // Don't re-fetch if we're already loading
+    if (this.isLoading) return false;
+    
+    // If we already have both credentials loaded, no need to fetch
+    if (this.apiKey && this.assistantId) return true;
+    
+    this.isLoading = true;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('get-vapi-keys', {
+        method: 'GET',
+      });
+      
+      if (error) {
+        console.error('Error fetching VAPI credentials:', error);
+        // Fallback to localStorage if Supabase fails
+        const storedKey = localStorage.getItem('vapi_api_key');
+        if (storedKey) {
+          this.apiKey = storedKey;
+          return !!this.apiKey;
+        }
+        return false;
+      }
+      
+      if (data?.apiKey) {
+        this.apiKey = data.apiKey;
+      }
+      
+      if (data?.assistantId) {
+        this.assistantId = data.assistantId;
+      }
+      
+      return !!this.apiKey && !!this.assistantId;
+    } catch (error) {
+      console.error('Failed to fetch VAPI credentials:', error);
+      // Fallback to localStorage if Supabase fails
+      const storedKey = localStorage.getItem('vapi_api_key');
+      if (storedKey) {
+        this.apiKey = storedKey;
+        return !!this.apiKey;
+      }
+      return false;
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   setApiKey(apiKey: string) {
@@ -48,12 +103,19 @@ export class VapiService {
     return null;
   }
 
+  getAssistantId(): string | null {
+    return this.assistantId;
+  }
+
   clearApiKey() {
     this.apiKey = null;
     localStorage.removeItem('vapi_api_key');
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    // Ensure we have the credentials before making the request
+    await this.fetchCredentials();
+    
     const apiKey = this.getApiKey();
     
     if (!apiKey) {
@@ -87,20 +149,23 @@ export class VapiService {
     }
   }
 
-  async getCallAnalysis(filters: CallAnalysisFilters): Promise<CallAnalysisResult[]> {
-    if (!filters.assistantId) {
+  async getCallAnalysis(filters?: CallAnalysisFilters): Promise<CallAnalysisResult[]> {
+    // If no filters provided, use the stored assistant ID
+    const assistantId = filters?.assistantId || this.assistantId;
+    
+    if (!assistantId) {
       throw new Error("Assistant ID is required");
     }
 
     const params = new URLSearchParams({
-      assistant_id: filters.assistantId,
-      ...(filters.startDate && { start_date: filters.startDate }),
-      ...(filters.endDate && { end_date: filters.endDate }),
-      ...(filters.limit && { limit: filters.limit.toString() })
+      assistant_id: assistantId,
+      ...(filters?.startDate && { start_date: filters.startDate }),
+      ...(filters?.endDate && { end_date: filters.endDate }),
+      ...(filters?.limit && { limit: filters.limit.toString() })
     });
 
     // If fetchAll is true, use pagination to get all results
-    if (filters.fetchAll) {
+    if (filters?.fetchAll) {
       let allResults: CallAnalysisResult[] = [];
       let offset = 0;
       const pageLimit = 100; // Page size for pagination
@@ -138,18 +203,34 @@ export class VapiService {
     recipient: {
       phone_number: string;
     };
-    assistant_id: string;
+    assistant_id?: string;
     [key: string]: any;
   }) {
+    // Use stored assistant ID if none provided
+    if (!payload.assistant_id && this.assistantId) {
+      payload.assistant_id = this.assistantId;
+    }
+    
+    if (!payload.assistant_id) {
+      throw new Error("Assistant ID is required");
+    }
+    
     return this.request<any>('/outbound_call', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
   }
 
-  async getCallRecordings(assistantId: string, limit?: number) {
+  async getCallRecordings(assistantId?: string, limit?: number) {
+    // Use stored assistant ID if none provided
+    const id = assistantId || this.assistantId;
+    
+    if (!id) {
+      throw new Error("Assistant ID is required");
+    }
+    
     const params = new URLSearchParams({
-      assistant_id: assistantId,
+      assistant_id: id,
       ...(limit && { limit: limit.toString() })
     });
 
