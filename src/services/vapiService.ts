@@ -159,7 +159,6 @@ export class VapiService {
     }
   }
 
-  // FIXED: Using the current VAPI API endpoints based on their API documentation
   async getCallAnalysis(filters?: CallAnalysisFilters): Promise<CallAnalysisResult[]> {
     // If no filters provided, use the stored assistant ID
     const assistantId = filters?.assistantId || this.assistantId;
@@ -168,41 +167,28 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
 
-    // The current VAPI API endpoint for calls
-    const endpoint = `/calls`;
+    const endpoint = `/v1/assistants/${assistantId}/calls`;
     
     try {
-      // Call the endpoint with query parameters
       const response = await this.request<{ calls: CallAnalysisResult[] }>(endpoint, {
         method: 'GET',
-        // Adding parameters to the URL
-        headers: {
-          'X-Assistant-ID': assistantId
-        }
       });
       
-      // Enhance the results with college-specific data processing
       return this.processCollegeCallData(response.calls || []);
     } catch (error) {
       console.error("Error fetching call data:", error);
-      // Return empty array on error for better handling
       return [];
     }
   }
 
-  // Process call data specifically for college use case
   private processCollegeCallData(calls: CallAnalysisResult[]): CallAnalysisResult[] {
     return calls.map(call => {
-      // Extract college-specific keywords
       const collegeKeywords = this.extractCollegeKeywords(call.transcription);
       
-      // Determine the type of inquiry (admissions, financial aid, etc.)
       const inquiryType = this.categorizeInquiry(call.transcription, collegeKeywords);
       
-      // Enhance with additional processing for college environment
       return {
         ...call,
-        // Add derived fields for the college context
         call_type: call.call_type || this.determineCallType(call),
         contact_name: call.contact_name || this.extractContactName(call),
         company_name: call.company_name || this.determineAffiliation(call),
@@ -212,7 +198,6 @@ export class VapiService {
     });
   }
 
-  // Extract college-relevant keywords from transcription
   private extractCollegeKeywords(transcription: string = ""): string[] {
     if (!transcription) return [];
     
@@ -244,12 +229,10 @@ export class VapiService {
     collegeKeywordSets.forEach(set => {
       set.forEach(keyword => {
         if (transcription.toLowerCase().includes(keyword.toLowerCase())) {
-          // Add the primary category keyword (first in the set)
           if (!foundKeywords.includes(set[0])) {
             foundKeywords.push(set[0]);
           }
           
-          // Also add the specific matching keyword if it's not the category itself
           if (keyword !== set[0] && !foundKeywords.includes(keyword)) {
             foundKeywords.push(keyword);
           }
@@ -260,7 +243,6 @@ export class VapiService {
     return foundKeywords;
   }
 
-  // Categorize the type of inquiry based on transcription and keywords
   private categorizeInquiry(transcription: string = "", keywords: string[]): string {
     if (keywords.includes("admissions") || 
         keywords.includes("application") || 
@@ -307,27 +289,19 @@ export class VapiService {
     return "General Inquiry";
   }
 
-  // Determine call type if not provided by API
   private determineCallType(call: CallAnalysisResult): string {
-    // Check if the call type is explicitly provided
     if (call.call_type) return call.call_type;
     
-    // Implement logic to determine if a call is inbound or outbound
-    // This is placeholder logic - customize based on your data
     if (call.assistant_phone && call.assistant_phone === call.from) {
       return "outbound";
     }
     return "inbound";
   }
 
-  // Extract contact name if not provided by API
   private extractContactName(call: CallAnalysisResult): string {
-    // If customer_name is provided, use it
     if (call.customer_name) return call.customer_name;
     
-    // Try to extract a name from the transcription if available
     if (call.transcription) {
-      // Look for common introduction patterns in transcriptions
       const namePatterns = [
         /my name is ([A-Za-z\s]+)/i,
         /this is ([A-Za-z\s]+) (calling|speaking)/i,
@@ -338,9 +312,7 @@ export class VapiService {
       for (const pattern of namePatterns) {
         const match = call.transcription.match(pattern);
         if (match && match[1]) {
-          // Clean up the extracted name
           const name = match[1].trim();
-          // Avoid returning very short names or words that are likely not names
           if (name.length > 2 && !['the', 'and', 'but', 'for', 'from'].includes(name.toLowerCase())) {
             return name;
           }
@@ -348,7 +320,6 @@ export class VapiService {
       }
     }
     
-    // If we can't extract a name, use the phone number with masking
     if (call.from && call.from !== call.assistant_phone) {
       return `Caller ${call.from.slice(-4)}`;
     }
@@ -359,27 +330,22 @@ export class VapiService {
     return "Unknown Caller";
   }
 
-  // Determine college affiliation based on call data
   private determineAffiliation(call: CallAnalysisResult): string {
-    // Try to extract affiliation from transcription
     if (call.transcription) {
       const transcription = call.transcription.toLowerCase();
       
-      // Check for high school affiliation
       if (transcription.includes("high school") || 
           transcription.includes("secondary school") ||
           transcription.includes("senior year")) {
         return "High School Student";
       }
       
-      // Check for transfer student
       if (transcription.includes("transfer") || 
           transcription.includes("community college") ||
           transcription.includes("credits from")) {
         return "Transfer Applicant";
       }
       
-      // Check for parent/guardian
       if (transcription.includes("my son") || 
           transcription.includes("my daughter") ||
           transcription.includes("my child") ||
@@ -388,7 +354,6 @@ export class VapiService {
         return "Parent/Guardian";
       }
       
-      // Check for graduate student
       if (transcription.includes("graduate program") || 
           transcription.includes("master's") ||
           transcription.includes("phd") ||
@@ -396,7 +361,6 @@ export class VapiService {
         return "Graduate Applicant";
       }
       
-      // Check for current student
       if (transcription.includes("my classes") || 
           transcription.includes("my course") ||
           transcription.includes("my professor") ||
@@ -405,7 +369,6 @@ export class VapiService {
         return "Current Student";
       }
       
-      // Check for faculty/staff
       if (transcription.includes("faculty") || 
           transcription.includes("professor") ||
           transcription.includes("instructor") ||
@@ -415,11 +378,9 @@ export class VapiService {
       }
     }
     
-    // Default affiliation if none of the above matches
     return "College Inquiry";
   }
 
-  // Method to create a new outbound call campaign
   async createCampaign(payload: {
     name: string;
     description?: string;
@@ -436,44 +397,42 @@ export class VapiService {
     };
     [key: string]: any;
   }) {
-    // Use stored assistant ID if none provided
     if (!payload.assistant_id && this.assistantId) {
       payload.assistant_id = this.assistantId;
     }
     
-    const endpoint = `/campaigns`;
+    const endpoint = `/v1/assistants/${this.assistantId}/campaigns`;
     
     return this.request<any>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(payload),
-      headers: {
-        'X-Assistant-ID': this.assistantId || ''
-      }
+      body: JSON.stringify(payload)
     });
   }
 
-  // Method to get all campaigns
   async getCampaigns() {
     if (!this.assistantId) {
       throw new Error("Assistant ID is required");
     }
     
-    return this.request<{ campaigns: any[] }>(`/campaigns`, {
-      method: 'GET',
-      headers: {
-        'X-Assistant-ID': this.assistantId
-      }
-    });
-  }
-
-  // Method to get a specific campaign
-  async getCampaign(campaignId: string) {
-    return this.request<any>(`/campaigns/${campaignId}`, {
+    const endpoint = `/v1/assistants/${this.assistantId}/campaigns`;
+    
+    return this.request<{ campaigns: any[] }>(endpoint, {
       method: 'GET'
     });
   }
 
-  // Create a single outbound call
+  async getCampaign(campaignId: string) {
+    if (!this.assistantId) {
+      throw new Error("Assistant ID is required");
+    }
+    
+    const endpoint = `/v1/assistants/${this.assistantId}/campaigns/${campaignId}`;
+    
+    return this.request<any>(endpoint, {
+      method: 'GET'
+    });
+  }
+
   async createOutboundCall(payload: {
     phone_number: string;
     first_name?: string;
@@ -484,30 +443,24 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     
-    return this.request<any>('/calls', {
+    const endpoint = `/v1/assistants/${this.assistantId}/calls`;
+    
+    return this.request<any>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(payload),
-      headers: {
-        'X-Assistant-ID': this.assistantId
-      }
+      body: JSON.stringify(payload)
     });
   }
 
-  // Get call recordings with updated endpoint
   async getCallRecordings(limit?: number) {
     if (!this.assistantId) {
       throw new Error("Assistant ID is required");
     }
     
-    // Updated to use the corrected endpoint
-    const endpoint = `/calls`;
+    const endpoint = `/v1/assistants/${this.assistantId}/calls`;
     
     try {
       const response = await this.request<{ calls: any[] }>(endpoint, {
-        method: 'GET',
-        headers: {
-          'X-Assistant-ID': this.assistantId
-        }
+        method: 'GET'
       });
       
       return response.calls || [];
@@ -518,7 +471,6 @@ export class VapiService {
   }
 }
 
-// Create and export a singleton instance
 export const vapiService = new VapiService();
 
 export default vapiService;
