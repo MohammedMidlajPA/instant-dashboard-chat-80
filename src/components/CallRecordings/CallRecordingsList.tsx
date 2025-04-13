@@ -9,7 +9,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlayIcon, DownloadIcon, MessageSquareIcon, InfoIcon } from "lucide-react";
+import { PlayIcon, DownloadIcon, MessageSquareIcon, InfoIcon, AlertCircle } from "lucide-react";
 import { SentimentBadge } from "./SentimentBadge";
 import { CallTypeBadge } from "./CallTypeBadge";
 import { InquiryTypeBadge } from "./InquiryTypeBadge";
@@ -27,6 +27,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Recording {
   id: string;
@@ -52,6 +53,34 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
   isLoading 
 }) => {
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Simple check to see if we're likely getting a VAPI API error based on the network logs
+  React.useEffect(() => {
+    if (!isLoading && recordings.length === 0) {
+      // Try to check if there might be an API error
+      fetch("https://api.vapi.ai/assistants/380ff8dd-ca35-456e-9e9c-511bded18f09/calls", {
+        method: "HEAD",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("vapi_api_key") || ""}`
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          if (response.status === 404) {
+            setApiError("The VAPI API endpoint returned a 404 error. This could mean the API endpoint has changed or the assistant ID is incorrect.");
+          } else if (response.status === 401) {
+            setApiError("Authentication error with the VAPI API. Please check your API key.");
+          } else {
+            setApiError(`VAPI API error: ${response.status} ${response.statusText}`);
+          }
+        }
+      })
+      .catch(err => {
+        console.error("Error checking VAPI API:", err);
+      });
+    }
+  }, [isLoading, recordings]);
 
   return (
     <>
@@ -62,6 +91,27 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
             <p className="mt-2 text-sm text-gray-500">Loading recordings...</p>
           </div>
         </div>
+      ) : apiError ? (
+        <Card className="shadow-sm border-amber-200 bg-amber-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+              <div>
+                <h3 className="font-medium text-amber-800">API Connection Issue</h3>
+                <p className="text-sm text-amber-700 mt-1">{apiError}</p>
+                <div className="mt-4 text-sm">
+                  <p className="font-medium text-amber-800">Troubleshooting steps:</p>
+                  <ul className="list-disc pl-5 mt-1 text-amber-700 space-y-1">
+                    <li>Verify your VAPI API key is correct</li>
+                    <li>Check if the assistant ID is valid</li>
+                    <li>Ensure there are calls associated with this assistant</li>
+                    <li>Refresh the credentials by clicking "Refresh Credentials" in the VAPI API Configuration section</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <Table>
           <TableHeader>
@@ -81,7 +131,11 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
             {recordings.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8">
-                  <p className="text-gray-500">No recordings found.</p>
+                  <div className="flex flex-col items-center justify-center">
+                    <InfoIcon className="h-6 w-6 text-gray-400 mb-2" />
+                    <p className="text-gray-500">No recordings found. Using placeholder data.</p>
+                    <p className="text-sm text-gray-400 mt-1">When the VAPI integration is properly set up, real call recordings will appear here.</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

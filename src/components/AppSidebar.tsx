@@ -6,7 +6,7 @@ import {
   MessageSquare,
   Settings,
   Users,
-  PlusSquare,
+  GraduationCap,
   FileText,
   Calendar,
   UserCircle,
@@ -14,7 +14,10 @@ import {
   Contact,
   Briefcase,
   Bell,
-  CreditCard,
+  School,
+  Book,
+  PieChart,
+  Award,
   LogOut,
   ChevronDown,
   ChevronRight
@@ -53,20 +56,20 @@ import { useState } from "react";
 
 const menuItems = [
   {
-    title: "Dashboard",
+    title: "College Dashboard",
     icon: LayoutDashboard,
     url: "/",
     notification: 0,
   },
   {
-    title: "Sales Dashboard",
+    title: "Admissions Dashboard",
     icon: BarChart2,
     url: "/sales-dashboard",
     notification: 0,
   },
   {
-    title: "Sales Pipeline",
-    icon: Briefcase,
+    title: "Student Recruitment",
+    icon: Users,
     url: "/sales-pipeline",
     notification: 3,
   },
@@ -74,10 +77,10 @@ const menuItems = [
     title: "Call Recordings",
     icon: PhoneCall,
     url: "/call-recordings",
-    notification: 0,
+    notification: 2,
   },
   {
-    title: "Contacts",
+    title: "Student Profiles",
     icon: Contact,
     url: "/contacts",
     notification: 0,
@@ -89,10 +92,22 @@ const menuItems = [
     notification: 0,
   },
   {
-    title: "Calendar",
+    title: "Academic Calendar",
     icon: Calendar,
     url: "/calendar",
-    notification: 2,
+    notification: 1,
+  },
+  {
+    title: "Programs & Courses",
+    icon: Book,
+    url: "/programs",
+    notification: 0,
+  },
+  {
+    title: "Enrollment Analytics",
+    icon: PieChart,
+    url: "/enrollment-analytics",
+    notification: 0,
   }
 ];
 
@@ -112,14 +127,15 @@ const utilityItems = [
 // User roles and permissions
 const userRoles = [
   { id: "admin", name: "Administrator", color: "bg-purple-100 text-purple-800" },
-  { id: "manager", name: "Manager", color: "bg-blue-100 text-blue-800" },
-  { id: "agent", name: "Agent", color: "bg-green-100 text-green-800" },
+  { id: "admissions", name: "Admissions Officer", color: "bg-blue-100 text-blue-800" },
+  { id: "faculty", name: "Faculty", color: "bg-green-100 text-green-800" },
+  { id: "advisor", name: "Student Advisor", color: "bg-amber-100 text-amber-800" },
   { id: "viewer", name: "Viewer", color: "bg-gray-100 text-gray-800" },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
-  const [companyName, setCompanyName] = useState("VoiceFlowAI");
+  const [companyName, setCompanyName] = useState("College Voice AI");
   const [userRole, setUserRole] = useState("admin");
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(companyName);
@@ -150,15 +166,15 @@ export function AppSidebar() {
     <Sidebar className="border-r border-border">
       <SidebarHeader className="pt-6 pl-6 pr-6 font-poppins">
         <div className="flex items-center gap-2 mb-2">
-          <div className="h-8 w-8 rounded-md bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white">
-            VA
+          <div className="h-8 w-8 rounded-md bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white">
+            <GraduationCap size={18} />
           </div>
           
           {isEditingName ? (
             <div className="flex-1">
               <input
                 type="text"
-                className="text-lg font-bold w-full border border-purple-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="text-lg font-bold w-full border border-indigo-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={tempName}
                 onChange={(e) => setTempName(e.target.value)}
                 onBlur={handleNameSave}
@@ -168,7 +184,7 @@ export function AppSidebar() {
             </div>
           ) : (
             <Link to="/" className="flex items-center gap-2 flex-1">
-              <span className="text-xl font-bold text-purple-600">{companyName}</span>
+              <span className="text-xl font-bold text-indigo-600">{companyName}</span>
             </Link>
           )}
           
@@ -215,7 +231,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <div className="py-4 pl-6 text-xs uppercase text-muted-foreground font-medium tracking-wider">
-          MENU
+          CAMPUS MENU
         </div>
         <SidebarGroup>
           <SidebarGroupContent>
@@ -227,7 +243,7 @@ export function AppSidebar() {
                       to={item.url}
                       className={cn(
                         "flex gap-2 items-center",
-                        location.pathname === item.url && "text-purple-600 font-medium"
+                        location.pathname === item.url && "text-indigo-600 font-medium"
                       )}
                     >
                       <item.icon size={18} />
@@ -235,7 +251,7 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                   {item.notification > 0 && (
-                    <SidebarMenuBadge className="bg-purple-100 text-purple-800">
+                    <SidebarMenuBadge className="bg-indigo-100 text-indigo-800">
                       {item.notification}
                     </SidebarMenuBadge>
                   )}
@@ -257,7 +273,7 @@ export function AppSidebar() {
                       to={item.url} 
                       className={cn(
                         "flex gap-2 items-center",
-                        location.pathname === item.url && "text-purple-600 font-medium"
+                        location.pathname === item.url && "text-indigo-600 font-medium"
                       )}
                     >
                       <item.icon size={18} />
@@ -287,8 +303,8 @@ export function AppSidebar() {
             <AvatarFallback>MF</AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium leading-none truncate">Alex Morgan</p>
-            <p className="text-xs text-muted-foreground truncate">alex@voiceflowai.com</p>
+            <p className="text-sm font-medium leading-none truncate">Dr. Alex Morgan</p>
+            <p className="text-xs text-muted-foreground truncate">alex@collegevoiceai.edu</p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
