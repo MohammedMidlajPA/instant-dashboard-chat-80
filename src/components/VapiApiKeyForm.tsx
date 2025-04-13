@@ -14,7 +14,7 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
   const [isApiKeySet, setIsApiKeySet] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Hardcoded assistant ID
+  // Use the provided assistant ID 
   const defaultAssistantId = "b6860fc3-a9da-4741-83ce-cb07c5725486";
 
   useEffect(() => {

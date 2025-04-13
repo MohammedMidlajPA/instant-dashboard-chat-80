@@ -15,7 +15,7 @@ interface UseVapiRealtimeOptions {
 
 export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
   const {
-    assistantId = "b6860fc3-a9da-4741-83ce-cb07c5725486", // Default to the provided assistant ID
+    assistantId,
     fetchInterval = 30000, // Default to 30 seconds
     initialFetchDelay = 0,
     onDataUpdate,
@@ -46,7 +46,8 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         setError(null);
       }
       
-      // Get the assistant ID from options or use the default
+      // Get the assistant ID from options or from localStorage/service
+      // Use the provided ID first, fall back to the one from vapiService or localStorage
       const id = assistantId || vapiService.getAssistantId() || "b6860fc3-a9da-4741-83ce-cb07c5725486";
       
       if (!id) {
@@ -64,6 +65,8 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         return;
       }
 
+      console.log("Fetching call data with assistant ID:", id);
+
       // Get call data from VAPI using the updated service method
       const callData = await vapiService.getCallAnalysis({
         assistantId: id,
@@ -71,6 +74,8 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
       });
 
       if (!isMountedRef.current) return;
+
+      console.log("Call data received:", callData);
 
       // Reset retry count on successful fetch
       setRetryCount(0);
