@@ -7,7 +7,12 @@ import {
   Settings,
   Users,
   PlusSquare,
-  FileText
+  FileText,
+  Calendar,
+  UserCircle,
+  PhoneCall,
+  Contact,
+  Briefcase
 } from "lucide-react";
 
 import {
@@ -27,46 +32,51 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Link, useLocation } from "react-router-dom";
 
 const menuItems = [
   {
-    title: "Home",
-    icon: Home,
+    title: "Dashboard",
+    icon: LayoutDashboard,
     url: "/",
   },
   {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    url: "/dashboard",
-  },
-  {
-    title: "Analytics",
+    title: "Sales Dashboard",
     icon: BarChart2,
-    url: "/analytics",
+    url: "/sales-dashboard",
   },
   {
-    title: "Chat",
+    title: "Sales Pipeline",
+    icon: Briefcase,
+    url: "/sales-pipeline",
+  },
+  {
+    title: "Call Recordings",
+    icon: PhoneCall,
+    url: "/call-recordings",
+  },
+  {
+    title: "Contacts",
+    icon: Contact,
+    url: "/contacts",
+  },
+  {
+    title: "Outbound Calling",
     icon: MessageSquare,
-    url: "/chat",
-    active: true,
+    url: "/outbound-calling",
   },
   {
-    title: "Team",
-    icon: Users,
-    url: "/team",
-  },
-  {
-    title: "Documents",
-    icon: FileText,
-    url: "/documents",
-  },
+    title: "Calendar",
+    icon: Calendar,
+    url: "/calendar",
+  }
 ];
 
 const utilityItems = [
   {
-    title: "New Project",
-    icon: PlusSquare,
-    url: "/new-project",
+    title: "Profile",
+    icon: UserCircle,
+    url: "/profile",
   },
   {
     title: "Settings",
@@ -76,51 +86,63 @@ const utilityItems = [
 ];
 
 export function AppSidebar() {
+  const location = useLocation();
+  
   return (
     <Sidebar className="border-r border-border">
       <SidebarHeader className="pt-6 pl-6 font-poppins">
-        <a href="/" className="flex items-center gap-2 text-2xl font-bold">
-          <div className="h-8 w-8 rounded-md bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white">
-            CD
+        <Link to="/" className="flex items-center gap-2 text-2xl font-bold">
+          <div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white">
+            TA
           </div>
-          <span className="gradient-text">ChatDash</span>
-        </a>
+          <span className="text-blue-600">TailAdmin</span>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
+        <div className="py-4 pl-6 text-xs uppercase text-muted-foreground font-medium tracking-wider">
+          MENU
+        </div>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild active={item.active}>
-                    <a
-                      href={item.url}
+                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
+                    <Link
+                      to={item.url}
                       className={cn(
                         "flex gap-2 items-center",
-                        item.active && "text-purple-600 font-medium"
+                        location.pathname === item.url && "text-blue-600 font-medium"
                       )}
                     >
                       <item.icon size={18} />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <div className="py-4 pl-6 text-xs uppercase text-muted-foreground font-medium tracking-wider">
+          OTHERS
+        </div>
         <SidebarGroup>
-          <SidebarGroupLabel>Utilities</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {utilityItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url} className="flex gap-2 items-center">
+                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
+                    <Link 
+                      to={item.url} 
+                      className={cn(
+                        "flex gap-2 items-center",
+                        location.pathname === item.url && "text-blue-600 font-medium"
+                      )}
+                    >
                       <item.icon size={18} />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -132,11 +154,11 @@ export function AppSidebar() {
         <div className="px-4 flex items-center gap-3">
           <Avatar>
             <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-            <AvatarFallback>JD</AvatarFallback>
+            <AvatarFallback>MF</AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium leading-none truncate">John Doe</p>
-            <p className="text-xs text-muted-foreground truncate">john@example.com</p>
+            <p className="text-sm font-medium leading-none truncate">Musharof</p>
+            <p className="text-xs text-muted-foreground truncate">musharof@example.com</p>
           </div>
         </div>
       </SidebarFooter>
