@@ -15,6 +15,9 @@ import { MonthlyCallsChart } from "@/components/CallRecordings/MonthlyCallsChart
 import { SentimentDistribution } from "@/components/CallRecordings/SentimentDistribution";
 import { TopKeywords } from "@/components/CallRecordings/TopKeywords";
 import { useCollegeCallRecordings } from "@/hooks/useCollegeCallRecordings";
+import { Badge } from "@/components/ui/badge";
+import { useVapiRealtime } from "@/hooks/useVapiRealtime";
+import { useEffect } from "react";
 
 const CallRecordings = () => {
   const [isApiKeySet, setIsApiKeySet] = useState(false);
@@ -23,12 +26,29 @@ const CallRecordings = () => {
   const {
     recordings,
     stats,
-    isLoading,
+    isLoading: loadingRecordings,
     fetchRecordings
   } = useCollegeCallRecordings({
     autoFetch: isApiKeySet,
     limit: 100
   });
+
+  // Use our real-time hook for live updates
+  const { 
+    isLoading: realtimeLoading,
+    isConnected,
+    refetch 
+  } = useVapiRealtime({
+    fetchInterval: 30000, // 30 seconds
+    initialFetchDelay: 1000, // 1 second initial delay
+    enabled: isApiKeySet,
+    onDataUpdate: () => {
+      // When real-time data updates, fetch the recordings
+      fetchRecordings();
+    }
+  });
+
+  const isLoading = loadingRecordings || realtimeLoading;
 
   const filteredRecordings = searchTerm 
     ? recordings.filter(recording => {
@@ -60,6 +80,20 @@ const CallRecordings = () => {
 
         {isApiKeySet && (
           <>
+            <div className="flex justify-end mb-4">
+              {isConnected ? (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                  Real-time Updates Active
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                  Connecting to VAPI...
+                </Badge>
+              )}
+            </div>
+
             <AnalyticsSummaryCards 
               totalCalls={stats.totalCalls}
               totalTalkTime={stats.totalTalkTime}
@@ -87,7 +121,10 @@ const CallRecordings = () => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={fetchRecordings} 
+                      onClick={() => {
+                        refetch();
+                        fetchRecordings();
+                      }} 
                       disabled={isLoading}
                     >
                       {isLoading ? (
