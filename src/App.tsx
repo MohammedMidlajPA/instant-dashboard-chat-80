@@ -14,6 +14,8 @@ import Calendar from "./pages/Calendar";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import EnrollmentAnalytics from "./pages/EnrollmentAnalytics";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -24,13 +26,14 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Index />} />
           <Route path="/sales-dashboard" element={<SalesDashboard />} />
           <Route path="/sales-pipeline" element={<SalesPipeline />} />
           <Route path="/call-recordings" element={<CallRecordings />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/outbound-calling" element={<OutboundCalling />} />
           <Route path="/calendar" element={<Calendar />} />
+          <Route path="/enrollment-analytics" element={<EnrollmentAnalytics />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
