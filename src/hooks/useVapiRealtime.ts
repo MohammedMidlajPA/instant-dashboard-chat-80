@@ -53,7 +53,7 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         return;
       }
 
-      // Get call data from VAPI using the updated endpoint format
+      // Get call data from VAPI using the updated endpoint format for call analysis
       const callData = await vapiService.getCallAnalysis({
         assistantId: id,
         limit: 100,
