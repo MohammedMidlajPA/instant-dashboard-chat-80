@@ -67,7 +67,7 @@ const OutboundCalling = () => {
         }
       };
 
-      const response = await vapiService.createOutboundCall(callPayload);
+      await vapiService.createOutboundCall(callPayload);
 
       toast.success("Call initiated successfully!");
       
@@ -95,7 +95,7 @@ const OutboundCalling = () => {
 
         {isApiKeySet && (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <Card className="shadow-sm">
+            <Card className="shadow-sm bg-white">
               <CardHeader>
                 <CardTitle>Make a Call</CardTitle>
                 <CardDescription>
@@ -209,7 +209,7 @@ const OutboundCalling = () => {
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm">
+            <Card className="shadow-sm bg-white">
               <CardHeader>
                 <CardTitle>How It Works</CardTitle>
                 <CardDescription>
@@ -219,8 +219,8 @@ const OutboundCalling = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-2 mr-3">
-                      <span className="text-blue-800 text-lg font-bold">1</span>
+                    <div className="flex-shrink-0 bg-blue-50 rounded-full p-2 mr-3">
+                      <span className="text-blue-700 text-sm font-bold">1</span>
                     </div>
                     <div>
                       <h3 className="font-medium">Enter Contact Details</h3>
@@ -231,8 +231,8 @@ const OutboundCalling = () => {
                   </div>
 
                   <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-2 mr-3">
-                      <span className="text-blue-800 text-lg font-bold">2</span>
+                    <div className="flex-shrink-0 bg-blue-50 rounded-full p-2 mr-3">
+                      <span className="text-blue-700 text-sm font-bold">2</span>
                     </div>
                     <div>
                       <h3 className="font-medium">AI Makes the Call</h3>
@@ -243,8 +243,8 @@ const OutboundCalling = () => {
                   </div>
 
                   <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-2 mr-3">
-                      <span className="text-blue-800 text-lg font-bold">3</span>
+                    <div className="flex-shrink-0 bg-blue-50 rounded-full p-2 mr-3">
+                      <span className="text-blue-700 text-sm font-bold">3</span>
                     </div>
                     <div>
                       <h3 className="font-medium">Answers Questions</h3>
@@ -255,8 +255,8 @@ const OutboundCalling = () => {
                   </div>
 
                   <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-2 mr-3">
-                      <span className="text-blue-800 text-lg font-bold">4</span>
+                    <div className="flex-shrink-0 bg-blue-50 rounded-full p-2 mr-3">
+                      <span className="text-blue-700 text-sm font-bold">4</span>
                     </div>
                     <div>
                       <h3 className="font-medium">Review Call Recording</h3>
@@ -266,7 +266,7 @@ const OutboundCalling = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t">
+                  <div className="mt-4 pt-3 border-t border-gray-100">
                     <p className="text-sm text-gray-600">
                       For bulk outreach, use our <a href="/campaigns" className="text-blue-600 hover:underline">Campaign feature</a> to upload lists of students.
                     </p>

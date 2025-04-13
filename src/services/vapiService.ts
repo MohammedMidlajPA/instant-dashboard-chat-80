@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -71,10 +72,14 @@ export class VapiService {
       
       if (data?.apiKey) {
         this.apiKey = data.apiKey;
+        // Also store in localStorage as fallback
+        localStorage.setItem('vapi_api_key', data.apiKey);
       }
       
       if (data?.assistantId) {
         this.assistantId = data.assistantId;
+        // Also store in localStorage as fallback
+        localStorage.setItem('vapi_assistant_id', data.assistantId);
       }
       
       return !!this.apiKey && !!this.assistantId;
@@ -112,12 +117,22 @@ export class VapiService {
   }
 
   getAssistantId(): string | null {
-    return this.assistantId;
+    if (this.assistantId) return this.assistantId;
+    
+    // Try to get from localStorage if not set directly
+    const storedId = localStorage.getItem('vapi_assistant_id');
+    if (storedId) {
+      this.assistantId = storedId;
+      return storedId;
+    }
+    
+    return null;
   }
 
   clearApiKey() {
     this.apiKey = null;
     localStorage.removeItem('vapi_api_key');
+    localStorage.removeItem('vapi_assistant_id');
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -167,9 +182,9 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
 
-    const endpoint = `/v1/calls`;
+    // FIXED: Using the correct endpoint format
+    const endpoint = `/v1/assistants/${assistantId}/calls`;
     const queryParams = new URLSearchParams();
-    queryParams.append('assistant_id', assistantId);
     
     if (filters?.limit) {
       queryParams.append('limit', filters.limit.toString());
@@ -184,7 +199,8 @@ export class VapiService {
     }
     
     try {
-      const response = await this.request<{ calls: CallAnalysisResult[] }>(`${endpoint}?${queryParams.toString()}`, {
+      const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+      const response = await this.request<{ calls: CallAnalysisResult[] }>(url, {
         method: 'GET',
       });
       
@@ -415,6 +431,7 @@ export class VapiService {
       payload.assistant_id = this.assistantId;
     }
     
+    // FIXED: Updated endpoint
     const endpoint = `/v1/campaigns`;
     
     return this.request<any>(endpoint, {
@@ -428,6 +445,7 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     
+    // FIXED: Updated endpoint
     const endpoint = `/v1/campaigns`;
     const queryParams = new URLSearchParams();
     queryParams.append('assistant_id', this.assistantId);
@@ -442,6 +460,7 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     
+    // FIXED: Updated endpoint
     const endpoint = `/v1/campaigns/${campaignId}`;
     const queryParams = new URLSearchParams();
     queryParams.append('assistant_id', this.assistantId);
@@ -468,7 +487,8 @@ export class VapiService {
       assistant_id: this.assistantId
     };
     
-    const endpoint = `/v1/calls`;
+    // FIXED: Updated endpoint
+    const endpoint = `/v1/assistants/${this.assistantId}/call`;
     
     return this.request<any>(endpoint, {
       method: 'POST',
@@ -481,16 +501,17 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     
-    const endpoint = `/v1/calls`;
+    // FIXED: Updated endpoint
+    const endpoint = `/v1/assistants/${this.assistantId}/calls`;
     const queryParams = new URLSearchParams();
-    queryParams.append('assistant_id', this.assistantId);
     
     if (limit) {
       queryParams.append('limit', limit.toString());
     }
     
     try {
-      const response = await this.request<{ calls: any[] }>(`${endpoint}?${queryParams.toString()}`, {
+      const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+      const response = await this.request<{ calls: any[] }>(url, {
         method: 'GET'
       });
       

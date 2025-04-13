@@ -72,18 +72,18 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
   };
 
   return (
-    <Card className="w-full shadow-sm">
+    <Card className="w-full shadow-sm bg-white">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">VAPI Connection Status</CardTitle>
+        <CardTitle className="text-lg">VAPI Connection</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center py-2">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
-            <span className="ml-2 text-sm text-gray-500">Verifying connection...</span>
+          <div className="flex items-center space-x-2">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+            <span className="text-sm text-gray-500">Verifying connection...</span>
           </div>
         ) : !isApiKeySet ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-2 text-amber-600 text-sm">
               <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
               <span>VAPI connection required</span>
@@ -92,6 +92,7 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
               onClick={handleRefreshCredentials}
               className="w-full"
               size="sm"
+              variant="outline"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
               Connect to VAPI
@@ -103,7 +104,7 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
               <CheckCircle className="h-4 w-4" />
               Connected to VAPI
             </div>
-            <Button variant="outline" size="sm" onClick={handleClearApiKey}>
+            <Button variant="outline" size="xs" onClick={handleClearApiKey}>
               Disconnect
             </Button>
           </div>

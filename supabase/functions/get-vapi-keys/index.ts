@@ -9,9 +9,7 @@ serve(async (req) => {
   }
 
   try {
-    // Get the VAPI API key and assistant ID from environment variables
-    // const vapiApiKey = Deno.env.get("VAPI_API_KEY");
-    // Using the provided key directly for immediate testing
+    // Using the fixed API key
     const vapiApiKey = "10176cf2-5ee4-4ba2-b89a-4b3c18124215";
     const vapiAssistantId = Deno.env.get("VAPI_ASSISTANT_ID") || "380ff8dd-ca35-456e-9e9c-511bded18f09";
 

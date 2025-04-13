@@ -58,37 +58,19 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
   // Simple check to see if we're likely getting a VAPI API error based on the network logs
   React.useEffect(() => {
     if (!isLoading && recordings.length === 0) {
-      // Try to check if there might be an API error
-      fetch("https://api.vapi.ai/calls", {
-        method: "HEAD",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("vapi_api_key") || ""}`,
-          "X-Assistant-ID": localStorage.getItem("vapi_assistant_id") || ""
-        }
-      })
-      .then(response => {
-        if (!response.ok) {
-          if (response.status === 404) {
-            setApiError("The VAPI API endpoint returned a 404 error. This could mean the API endpoint has changed or the assistant ID is incorrect.");
-          } else if (response.status === 401) {
-            setApiError("Authentication error with the VAPI API. Please check your API key.");
-          } else {
-            setApiError(`VAPI API error: ${response.status} ${response.statusText}`);
-          }
-        }
-      })
-      .catch(err => {
-        console.error("Error checking VAPI API:", err);
-      });
+      // Set a more helpful error message about the API endpoint format
+      setApiError("Connection to VAPI API unsuccessful. This may be due to an endpoint format change or authentication issue.");
+    } else {
+      setApiError(null);
     }
   }, [isLoading, recordings]);
 
   return (
     <>
       {isLoading ? (
-        <div className="flex justify-center items-center h-40">
+        <div className="flex justify-center items-center h-32">
           <div className="flex flex-col items-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+            <div className="h-6 w-6 animate-spin rounded-full border-3 border-gray-200 border-t-blue-600"></div>
             <p className="mt-2 text-sm text-gray-500">Loading recordings...</p>
           </div>
         </div>
@@ -96,17 +78,17 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
         <Card className="shadow-sm border-amber-200 bg-amber-50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+              <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
               <div>
                 <h3 className="font-medium text-amber-800">API Connection Issue</h3>
                 <p className="text-sm text-amber-700 mt-1">{apiError}</p>
-                <div className="mt-4 text-sm">
+                <div className="mt-3 text-sm">
                   <p className="font-medium text-amber-800">Troubleshooting steps:</p>
                   <ul className="list-disc pl-5 mt-1 text-amber-700 space-y-1">
                     <li>Verify your VAPI API key is correct</li>
-                    <li>Check if the assistant ID is valid</li>
-                    <li>Ensure there are calls associated with this assistant</li>
-                    <li>Refresh the credentials by clicking "Refresh Credentials" in the VAPI API Configuration section</li>
+                    <li>Ensure the VAPI API endpoints are up to date</li>
+                    <li>Check if your assistant ID is valid</li>
+                    <li>Try refreshing the connection by clicking "Connect to VAPI" in the VAPI Connection section</li>
                   </ul>
                 </div>
               </div>
@@ -134,8 +116,8 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
                 <TableCell colSpan={9} className="text-center py-8">
                   <div className="flex flex-col items-center justify-center">
                     <InfoIcon className="h-6 w-6 text-gray-400 mb-2" />
-                    <p className="text-gray-500">No recordings found. Using placeholder data.</p>
-                    <p className="text-sm text-gray-400 mt-1">When the VAPI integration is properly set up, real call recordings will appear here.</p>
+                    <p className="text-gray-500">No recordings found</p>
+                    <p className="text-sm text-gray-400 mt-1">Make an outbound call to generate call recordings</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -157,22 +139,22 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {recording.keywords.slice(0, 3).map((keyword, i) => (
+                      {recording.keywords.slice(0, 2).map((keyword, i) => (
                         <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
                           {keyword}
                         </span>
                       ))}
-                      {recording.keywords.length > 3 && (
+                      {recording.keywords.length > 2 && (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="bg-gray-100 px-2 py-0.5 rounded text-xs cursor-pointer">
-                                +{recording.keywords.length - 3}
+                                +{recording.keywords.length - 2}
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
                               <div className="max-w-xs">
-                                {recording.keywords.slice(3).join(", ")}
+                                {recording.keywords.slice(2).join(", ")}
                               </div>
                             </TooltipContent>
                           </Tooltip>
@@ -181,25 +163,22 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" title="Play recording" disabled={!recording.recording_url}>
+                    <div className="flex space-x-1">
+                      <Button variant="outline" size="xs" title="Play recording" disabled={!recording.recording_url}>
                         <PlayIcon className="h-3 w-3" />
-                      </Button>
-                      <Button variant="outline" size="sm" title="Download recording" disabled={!recording.recording_url}>
-                        <DownloadIcon className="h-3 w-3" />
                       </Button>
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button 
                             variant="outline" 
-                            size="sm" 
+                            size="xs" 
                             title="View transcript"
                             onClick={() => setSelectedRecording(recording)}
                           >
                             <MessageSquareIcon className="h-3 w-3" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                        <DialogContent className="max-w-xl max-h-[80vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>Call Transcript</DialogTitle>
                             <DialogDescription>
