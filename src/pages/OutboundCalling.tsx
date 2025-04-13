@@ -32,6 +32,8 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { VapiApiKeyForm } from "@/components/VapiApiKeyForm";
+import { vapiService } from "@/services/vapiService";
 
 // Sample contact list
 const contactList = [
@@ -100,18 +102,47 @@ const OutboundCalling = () => {
   const [callTime, setCallTime] = useState(0);
   const [isCallActive, setIsCallActive] = useState(false);
   const [activeTab, setActiveTab] = useState("contacts");
-  const [vapiApiKey, setVapiApiKey] = useState("");
   const [isApiKeySet, setIsApiKeySet] = useState(false);
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
   const [campaignName, setCampaignName] = useState("");
   const [campaignScript, setCampaignScript] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
   const [selectedRecording, setSelectedRecording] = useState<number | null>(null);
+  const [actualRecordings, setActualRecordings] = useState<any[]>([]);
+  const [isLoadingRecordings, setIsLoadingRecordings] = useState(false);
   
   const timerRef = useRef<number | null>(null);
 
+  // Handle API key status change
+  const handleApiKeySet = (isSet: boolean) => {
+    setIsApiKeySet(isSet);
+    if (isSet) {
+      loadCallRecordings();
+    }
+  };
+
+  // Load call recordings from VAPI API
+  const loadCallRecordings = async () => {
+    if (!isApiKeySet) return;
+    
+    try {
+      setIsLoadingRecordings(true);
+      // Replace with your actual assistant ID
+      const assistantId = "your_assistant_id"; 
+      const recordings = await vapiService.getCallRecordings(assistantId, 10);
+      if (recordings && recordings.length > 0) {
+        setActualRecordings(recordings);
+      }
+    } catch (error) {
+      console.error('Error loading call recordings:', error);
+      toast.error('Failed to load call recordings');
+    } finally {
+      setIsLoadingRecordings(false);
+    }
+  };
+
   // Handle starting a call
-  const startCall = (contact: typeof contactList[0]) => {
+  const startCall = async (contact: typeof contactList[0]) => {
     if (!isApiKeySet) {
       toast.error("Please set your VAPI API key first");
       return;
@@ -128,7 +159,28 @@ const OutboundCalling = () => {
     
     timerRef.current = timer;
     
-    toast.success(`Calling ${contact.name}...`);
+    try {
+      // Replace with your actual assistant ID
+      const assistantId = "your_assistant_id";
+      await vapiService.createOutboundCall({
+        recipient: {
+          phone_number: contact.phone,
+        },
+        assistant_id: assistantId,
+        // Add additional payload data as needed
+        metadata: {
+          contact_name: contact.name,
+          contact_email: contact.email,
+          company: contact.company
+        }
+      });
+      
+      toast.success(`Calling ${contact.name}...`);
+    } catch (error) {
+      console.error('Error initiating call:', error);
+      toast.error('Failed to initiate call');
+      endCall();
+    }
   };
 
   // Handle ending a call
@@ -153,16 +205,15 @@ const OutboundCalling = () => {
     };
   }, []);
   
-  // Handle API key submission
-  const handleApiKeySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (vapiApiKey.trim()) {
-      setIsApiKeySet(true);
-      toast.success("VAPI API key has been set successfully");
-    } else {
-      toast.error("Please enter a valid API key");
+  // Check if API key is already set on component mount
+  useEffect(() => {
+    const apiKey = vapiService.getApiKey();
+    setIsApiKeySet(!!apiKey);
+    
+    if (apiKey) {
+      loadCallRecordings();
     }
-  };
+  }, []);
   
   // Handle creating a new campaign
   const handleCreateCampaign = (e: React.FormEvent) => {
@@ -230,22 +281,7 @@ const OutboundCalling = () => {
           
           <div className="flex flex-wrap gap-2">
             {!isApiKeySet ? (
-              <Card className="w-full sm:w-auto">
-                <CardContent className="p-3">
-                  <form onSubmit={handleApiKeySubmit} className="flex items-center gap-2">
-                    <Input
-                      type="password"
-                      placeholder="Enter VAPI API Key"
-                      value={vapiApiKey}
-                      onChange={(e) => setVapiApiKey(e.target.value)}
-                      className="max-w-[220px]"
-                    />
-                    <Button type="submit" size="sm">
-                      Set Key
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+              <VapiApiKeyForm onApiKeySet={handleApiKeySet} />
             ) : (
               <>
                 <Button variant="outline" onClick={() => setIsCreatingCampaign(true)}>
@@ -696,46 +732,58 @@ const OutboundCalling = () => {
                     <CardDescription>AI-analyzed call recordings from your campaigns</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Contact</TableHead>
-                            <TableHead>Duration</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Sentiment</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {callRecordings.map((recording) => (
-                            <TableRow 
-                              key={recording.id}
-                              className={cn(selectedRecording === recording.id && "bg-accent")}
-                            >
-                              <TableCell className="font-medium">{recording.contact}</TableCell>
-                              <TableCell>{recording.duration}</TableCell>
-                              <TableCell>{recording.date}</TableCell>
-                              <TableCell>
-                                <SentimentBadge sentiment={recording.sentiment} />
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => setSelectedRecording(recording.id)}
-                                  >
-                                    <PlayIcon className="h-3 w-3 mr-1" />
-                                    Play
-                                  </Button>
-                                </div>
-                              </TableCell>
+                    {isLoadingRecordings ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    ) : actualRecordings.length > 0 ? (
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Call ID</TableHead>
+                              <TableHead>Duration</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Actions</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                          </TableHeader>
+                          <TableBody>
+                            {actualRecordings.map((recording) => (
+                              <TableRow 
+                                key={recording.id}
+                                className={cn(selectedRecording === recording.id && "bg-accent")}
+                              >
+                                <TableCell className="font-medium">{recording.id.substring(0, 8)}...</TableCell>
+                                <TableCell>{recording.duration ? `${Math.floor(recording.duration / 60)}:${(recording.duration % 60).toString().padStart(2, '0')}` : 'N/A'}</TableCell>
+                                <TableCell>{new Date(recording.created_at).toLocaleDateString()}</TableCell>
+                                <TableCell>
+                                  <StatusBadge status={recording.status} />
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => setSelectedRecording(recording.id)}
+                                    >
+                                      <PlayIcon className="h-3 w-3 mr-1" />
+                                      Details
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <FileTextIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500">No call recordings available</p>
+                        <p className="text-sm text-gray-400 mt-1">Make some calls to see recordings here</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -748,6 +796,7 @@ const OutboundCalling = () => {
                   <CardContent>
                     {selectedRecording ? (
                       <>
+                        {/* Replace with actual API data rendering */}
                         {(() => {
                           const recording = callRecordings.find(r => r.id === selectedRecording);
                           if (!recording) return null;

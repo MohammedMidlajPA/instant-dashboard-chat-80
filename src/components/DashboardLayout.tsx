@@ -20,7 +20,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {children}
           </main>
         </div>
-        <Toaster position="top-right" />
+        <Toaster position="top-right" richColors closeButton />
       </div>
     </SidebarProvider>
   );
