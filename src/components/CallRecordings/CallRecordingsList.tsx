@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Table, 
@@ -55,10 +54,8 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Simple check to see if we're likely getting a VAPI API error based on the network logs
   React.useEffect(() => {
     if (!isLoading && recordings.length === 0) {
-      // Set a more helpful error message about the API endpoint format
       setApiError("Connection to VAPI API unsuccessful. This may be due to an endpoint format change or authentication issue.");
     } else {
       setApiError(null);
@@ -164,14 +161,14 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-1">
-                      <Button variant="outline" size="xs" title="Play recording" disabled={!recording.recording_url}>
+                      <Button variant="outline" size="sm" title="Play recording" disabled={!recording.recording_url}>
                         <PlayIcon className="h-3 w-3" />
                       </Button>
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button 
                             variant="outline" 
-                            size="xs" 
+                            size="sm" 
                             title="View transcript"
                             onClick={() => setSelectedRecording(recording)}
                           >

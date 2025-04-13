@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -84,10 +83,6 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
           </div>
         ) : !isApiKeySet ? (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-amber-600 text-sm">
-              <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-              <span>VAPI connection required</span>
-            </div>
             <Button 
               onClick={handleRefreshCredentials}
               className="w-full"
@@ -104,7 +99,7 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
               <CheckCircle className="h-4 w-4" />
               Connected to VAPI
             </div>
-            <Button variant="outline" size="xs" onClick={handleClearApiKey}>
+            <Button variant="outline" size="sm" onClick={handleClearApiKey}>
               Disconnect
             </Button>
           </div>
