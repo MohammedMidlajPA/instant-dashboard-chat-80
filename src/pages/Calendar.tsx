@@ -1,98 +1,210 @@
 
+import React, { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
-// Mock data for upcoming calls
-const upcomingCalls = [
-  { 
-    id: 1, 
-    contact: 'John Smith', 
-    company: 'ABC Corporation', 
-    date: '2023-05-16', 
-    time: '10:00 AM', 
-    duration: '30 min',
-    type: 'Demo Call'
+// Calendar events
+const events = [
+  {
+    id: 1,
+    title: "Call with John",
+    date: new Date(2025, 3, 14, 10, 0),
+    type: "call",
+    duration: 30,
   },
-  { 
-    id: 2, 
-    contact: 'Sarah Johnson', 
-    company: 'XYZ Industries', 
-    date: '2023-05-16', 
-    time: '02:30 PM', 
-    duration: '45 min',
-    type: 'Follow-up'
+  {
+    id: 2,
+    title: "Follow-up with Sarah",
+    date: new Date(2025, 3, 14, 14, 0),
+    type: "call",
+    duration: 15,
   },
-  { 
-    id: 3, 
-    contact: 'Michael Brown', 
-    company: 'Acme Inc.', 
-    date: '2023-05-17', 
-    time: '11:15 AM', 
-    duration: '30 min',
-    type: 'Initial Consultation'
+  {
+    id: 3,
+    title: "Pitch to ABC Corp",
+    date: new Date(2025, 3, 15, 11, 0),
+    type: "meeting",
+    duration: 60,
   },
-  { 
-    id: 4, 
-    contact: 'Emily Wilson', 
-    company: 'Tech Solutions', 
-    date: '2023-05-18', 
-    time: '09:00 AM', 
-    duration: '60 min',
-    type: 'Product Demo'
+  {
+    id: 4,
+    title: "Review Q2 Targets",
+    date: new Date(2025, 3, 16, 9, 0),
+    type: "meeting",
+    duration: 45,
   },
-  { 
-    id: 5, 
-    contact: 'David Lee', 
-    company: 'Global Enterprises', 
-    date: '2023-05-19', 
-    time: '03:45 PM', 
-    duration: '30 min',
-    type: 'Follow-up'
-  }
+  {
+    id: 5,
+    title: "Demo for XYZ Inc",
+    date: new Date(2025, 3, 16, 15, 30),
+    type: "demo",
+    duration: 60,
+  },
+  {
+    id: 6,
+    title: "Training Session",
+    date: new Date(2025, 3, 17, 13, 0),
+    type: "training",
+    duration: 120,
+  },
 ];
 
+// Helper for calendar days
+const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Helper to get days in month
+const getDaysInMonth = (year: number, month: number) => {
+  return new Date(year, month + 1, 0).getDate();
+};
+
+// Helper to get day of week for first day of month
+const getFirstDayOfMonth = (year: number, month: number) => {
+  return new Date(year, month, 1).getDay();
+};
+
+// Get event color based on type
+const getEventColor = (type: string) => {
+  switch (type) {
+    case "call":
+      return "bg-blue-100 text-blue-800";
+    case "meeting":
+      return "bg-purple-100 text-purple-800";
+    case "demo":
+      return "bg-green-100 text-green-800";
+    case "training":
+      return "bg-amber-100 text-amber-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
 const Calendar = () => {
-  const today = new Date();
-  const currentMonth = today.toLocaleString('default', { month: 'long' });
-  const currentYear = today.getFullYear();
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isAddingEvent, setIsAddingEvent] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    type: "call",
+    duration: 30,
+  });
+
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+  const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+  const firstDayOfMonth = getFirstDayOfMonth(currentYear, currentMonth);
   
-  // Generate days for the current month's calendar
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
-  
-  const days = Array.from({ length: 42 }, (_, i) => {
-    const dayNumber = i - firstDay + 1;
-    if (dayNumber <= 0 || dayNumber > daysInMonth) {
-      return { day: '', date: null, isCurrentMonth: false };
-    }
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  // Navigate to previous month
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+  };
+
+  // Navigate to next month
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+  };
+
+  // Get events for a specific day
+  const getEventsForDay = (day: number) => {
+    const date = new Date(currentYear, currentMonth, day);
+    return events.filter(event => 
+      event.date.getDate() === day && 
+      event.date.getMonth() === currentMonth && 
+      event.date.getFullYear() === currentYear
+    );
+  };
+
+  // Select a date
+  const handleSelectDate = (day: number) => {
+    setSelectedDate(new Date(currentYear, currentMonth, day));
+  };
+
+  // Add new event
+  const handleAddEvent = () => {
+    if (!selectedDate || !newEvent.title) return;
     
-    const date = new Date(today.getFullYear(), today.getMonth(), dayNumber);
-    const isToday = dayNumber === today.getDate();
-    
-    // Find events for this day
-    const events = upcomingCalls.filter(call => {
-      const callDate = new Date(call.date);
-      return callDate.getDate() === dayNumber && 
-             callDate.getMonth() === today.getMonth() && 
-             callDate.getFullYear() === today.getFullYear();
+    // In a real app, you would add the event to your data store
+    console.log("Adding event:", {
+      ...newEvent,
+      date: selectedDate,
     });
     
-    return { 
-      day: dayNumber.toString(), 
-      date, 
-      isCurrentMonth: true, 
-      isToday,
-      events 
-    };
-  });
-  
-  const weeks = [];
-  for (let i = 0; i < 6; i++) {
-    weeks.push(days.slice(i * 7, (i + 1) * 7));
-  }
+    setIsAddingEvent(false);
+    setNewEvent({
+      title: "",
+      type: "call",
+      duration: 30,
+    });
+  };
+
+  // Render calendar days
+  const renderCalendarDays = () => {
+    const days = [];
+    
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      days.push(
+        <div key={`empty-${i}`} className="h-24 border border-gray-200 bg-gray-50"></div>
+      );
+    }
+    
+    // Add cells for days in the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayEvents = getEventsForDay(day);
+      const isToday = 
+        day === new Date().getDate() && 
+        currentMonth === new Date().getMonth() && 
+        currentYear === new Date().getFullYear();
+      
+      const isSelected = selectedDate && 
+        day === selectedDate.getDate() && 
+        currentMonth === selectedDate.getMonth() && 
+        currentYear === selectedDate.getFullYear();
+      
+      days.push(
+        <div 
+          key={day} 
+          className={`h-24 border border-gray-200 p-1 overflow-hidden transition-colors cursor-pointer
+            ${isToday ? "bg-blue-50" : ""}
+            ${isSelected ? "ring-2 ring-inset ring-blue-500" : ""}
+            hover:bg-gray-50`}
+          onClick={() => handleSelectDate(day)}
+        >
+          <div className="flex justify-between items-center">
+            <span className={`text-sm font-medium ${isToday ? "text-blue-700" : ""}`}>{day}</span>
+            {dayEvents.length > 0 && (
+              <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-1.5 py-0.5">
+                {dayEvents.length}
+              </span>
+            )}
+          </div>
+          <div className="mt-1 space-y-1">
+            {dayEvents.slice(0, 2).map((event, idx) => (
+              <div key={idx} className={`text-xs truncate rounded px-1.5 py-0.5 ${getEventColor(event.type)}`}>
+                {event.title}
+              </div>
+            ))}
+            {dayEvents.length > 2 && (
+              <div className="text-xs text-gray-500">+{dayEvents.length - 2} more</div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    return days;
+  };
 
   return (
     <DashboardLayout>
@@ -100,98 +212,137 @@ const Calendar = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">Calendar</h1>
-            <p className="text-muted-foreground">Manage your calls and meetings</p>
+            <p className="text-muted-foreground">Schedule and manage your calls and meetings</p>
           </div>
-          <Button>
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Schedule Call
-          </Button>
+          <Dialog open={isAddingEvent} onOpenChange={setIsAddingEvent}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Event
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Event</DialogTitle>
+                <DialogDescription>
+                  Create a new event for {selectedDate ? selectedDate.toLocaleDateString() : "the selected date"}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Event Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="Enter event title"
+                    value={newEvent.title}
+                    onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="type">Event Type</Label>
+                  <Select
+                    value={newEvent.type}
+                    onValueChange={(value) => setNewEvent({...newEvent, type: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select event type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="call">Call</SelectItem>
+                      <SelectItem value="meeting">Meeting</SelectItem>
+                      <SelectItem value="demo">Demo</SelectItem>
+                      <SelectItem value="training">Training</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Duration (minutes)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    min="5"
+                    max="240"
+                    value={newEvent.duration}
+                    onChange={(e) => setNewEvent({...newEvent, duration: parseInt(e.target.value)})}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddingEvent(false)}>Cancel</Button>
+                <Button onClick={handleAddEvent}>Add Event</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card className="shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-medium">{`${currentMonth} ${currentYear}`}</CardTitle>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="icon">
-                    <ChevronLeftIcon className="h-4 w-4" />
+        <div className="grid grid-cols-1 gap-6">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-0">
+              <div className="flex justify-between items-center mb-4">
+                <CardTitle className="text-xl">
+                  {monthNames[currentMonth]} {currentYear}
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" onClick={prevMonth}>
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon">
-                    <ChevronRightIcon className="h-4 w-4" />
+                  <Button variant="outline" size="icon" onClick={nextMonth}>
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-7 gap-px bg-gray-200">
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                    <div key={day} className="p-2 text-center font-medium text-sm bg-white">
-                      {day}
-                    </div>
-                  ))}
-                  
-                  {weeks.map((week, weekIndex) => (
-                    <React.Fragment key={weekIndex}>
-                      {week.map((day, dayIndex) => (
-                        <div 
-                          key={`${weekIndex}-${dayIndex}`}
-                          className={`min-h-[100px] p-2 bg-white ${day.isToday ? 'border-2 border-blue-500' : ''} ${!day.isCurrentMonth ? 'text-gray-400' : ''}`}
-                        >
-                          {day.day && (
-                            <>
-                              <div className="text-right">
-                                {day.day}
-                              </div>
-                              <div className="mt-1 space-y-1">
-                                {day.events?.map((event) => (
-                                  <div 
-                                    key={event.id}
-                                    className="bg-blue-100 text-blue-800 p-1 text-xs rounded truncate"
-                                  >
-                                    {event.time} - {event.contact}
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-1">
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-medium">Upcoming Calls</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {upcomingCalls.map((call) => (
-                  <div key={call.id} className="flex gap-4 p-3 bg-gray-50 rounded-lg">
-                    <div className="flex flex-col items-center justify-center bg-blue-100 rounded-lg p-2 h-16 w-16 text-blue-800">
-                      <span className="text-sm font-bold">{new Date(call.date).toLocaleDateString('en-US', { month: 'short' })}</span>
-                      <span className="text-xl font-bold">{new Date(call.date).getDate()}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium">{call.contact}</h4>
-                      <p className="text-sm text-gray-500">{call.company}</p>
-                      <div className="flex justify-between mt-1">
-                        <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">
-                          {call.time} ({call.duration})
-                        </span>
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                          {call.type}
-                        </span>
-                      </div>
-                    </div>
+              </div>
+              <div className="grid grid-cols-7 gap-px">
+                {daysOfWeek.map((day) => (
+                  <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                    {day}
                   </div>
                 ))}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="grid grid-cols-7 gap-px">
+                {renderCalendarDays()}
+              </div>
+            </CardContent>
+          </Card>
+
+          {selectedDate && (
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Events for {selectedDate.toLocaleDateString()}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {getEventsForDay(selectedDate.getDate()).length > 0 ? (
+                    getEventsForDay(selectedDate.getDate()).map((event, idx) => (
+                      <div key={idx} className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50">
+                        <div className="flex-shrink-0">
+                          <div className="p-2 rounded-full bg-blue-100">
+                            <CalendarIcon className="h-5 w-5 text-blue-700" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium">{event.title}</h4>
+                          <p className="text-xs text-gray-500">
+                            {event.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {event.duration} min
+                          </p>
+                        </div>
+                        <Badge className={getEventColor(event.type)}>
+                          {event.type}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      No events scheduled for this day.
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
-          </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
