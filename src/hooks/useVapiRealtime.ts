@@ -15,7 +15,7 @@ interface UseVapiRealtimeOptions {
 
 export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
   const {
-    assistantId,
+    assistantId = "b6860fc3-a9da-4741-83ce-cb07c5725486", // Default to the provided assistant ID
     fetchInterval = 30000, // Default to 30 seconds
     initialFetchDelay = 0,
     onDataUpdate,
@@ -46,8 +46,8 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         setError(null);
       }
       
-      // Get the assistant ID from options or from the service
-      const id = assistantId || vapiService.getAssistantId();
+      // Get the assistant ID from options or use the default
+      const id = assistantId || vapiService.getAssistantId() || "b6860fc3-a9da-4741-83ce-cb07c5725486";
       
       if (!id) {
         throw new Error("Assistant ID not found. Please check your configuration.");
@@ -64,7 +64,7 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         return;
       }
 
-      // Get call data from VAPI using the assist-specific endpoint for call analysis
+      // Get call data from VAPI using the updated service method
       const callData = await vapiService.getCallAnalysis({
         assistantId: id,
         limit: 100,

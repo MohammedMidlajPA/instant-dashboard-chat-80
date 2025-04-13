@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,9 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
   const [isApiKeySet, setIsApiKeySet] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Hardcoded assistant ID
+  const defaultAssistantId = "b6860fc3-a9da-4741-83ce-cb07c5725486";
+
   useEffect(() => {
     // Check if API key is already set
     const checkApiKey = async () => {
@@ -20,9 +24,16 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
       try {
         await vapiService.fetchCredentials();
         const existingKey = vapiService.getApiKey();
-        const existingAssistantId = vapiService.getAssistantId();
         
-        const hasCredentials = !!existingKey && !!existingAssistantId;
+        // Use either existing ID or default
+        let assistantId = vapiService.getAssistantId();
+        if (!assistantId) {
+          // Store the default assistant ID if none exists
+          localStorage.setItem('vapi_assistant_id', defaultAssistantId);
+          assistantId = defaultAssistantId;
+        }
+        
+        const hasCredentials = !!existingKey && !!assistantId;
         setIsApiKeySet(hasCredentials);
         
         if (hasCredentials && onApiKeySet) {
@@ -37,7 +48,7 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
     };
     
     checkApiKey();
-  }, [onApiKeySet]);
+  }, [onApiKeySet, defaultAssistantId]);
 
   const handleClearApiKey = () => {
     vapiService.clearApiKey();
@@ -52,8 +63,11 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
   const handleRefreshCredentials = async () => {
     setIsLoading(true);
     try {
+      // Ensure we have the default assistant ID set
+      localStorage.setItem('vapi_assistant_id', defaultAssistantId);
+      
       await vapiService.fetchCredentials();
-      const hasKey = !!vapiService.getApiKey() && !!vapiService.getAssistantId();
+      const hasKey = !!vapiService.getApiKey();
       setIsApiKeySet(hasKey);
       
       if (hasKey) {

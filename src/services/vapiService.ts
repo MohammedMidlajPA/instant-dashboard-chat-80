@@ -209,29 +209,34 @@ export class VapiService {
 
   async getCallAnalysis(filters?: CallAnalysisFilters): Promise<CallAnalysisResult[]> {
     // If no filters provided, use the stored assistant ID
-    const assistantId = filters?.assistantId || this.assistantId;
+    const assistantId = filters?.assistantId || this.assistantId || "b6860fc3-a9da-4741-83ce-cb07c5725486";
     
     if (!assistantId) {
       throw new Error("Assistant ID is required");
     }
 
-    // Use the /assistants/{assistantId}/call-analysis endpoint instead of /v1/calls
-    const endpoint = `/assistants/${assistantId}/call-analysis`;
-    const queryParams = new URLSearchParams();
-    
-    if (filters?.limit) {
-      queryParams.append('limit', filters.limit.toString());
-    }
-    
-    if (filters?.startDate) {
-      queryParams.append('start_date', filters.startDate);
-    }
-    
-    if (filters?.endDate) {
-      queryParams.append('end_date', filters.endDate);
-    }
-    
+    // Try different endpoints based on VAPI API structure
+    // This is a fallback mechanism to handle API changes
     try {
+      // Try the new endpoint structure first - /api/v1/calls
+      const endpoint = `/api/v1/calls`;
+      const queryParams = new URLSearchParams();
+      
+      if (filters?.limit) {
+        queryParams.append('limit', filters.limit.toString());
+      }
+      
+      if (filters?.startDate) {
+        queryParams.append('start_date', filters.startDate);
+      }
+      
+      if (filters?.endDate) {
+        queryParams.append('end_date', filters.endDate);
+      }
+      
+      // Add the assistant ID filter as a query parameter rather than part of the path
+      queryParams.append('assistant_id', assistantId);
+      
       const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
       const response = await this.request<{ calls: CallAnalysisResult[] }>(url, {
         method: 'GET',
@@ -239,8 +244,32 @@ export class VapiService {
       
       return this.processCollegeCallData(response.calls || []);
     } catch (error) {
-      console.error("Error fetching call data:", error);
-      return [];
+      console.error("Error with primary endpoint, trying fallback:", error);
+      
+      try {
+        // Fallback to an alternative endpoint - /v1/calls
+        const endpoint = `/v1/calls`;
+        const queryParams = new URLSearchParams();
+        
+        if (filters?.limit) {
+          queryParams.append('limit', filters.limit.toString());
+        }
+        
+        if (assistantId) {
+          queryParams.append('assistant_id', assistantId);
+        }
+        
+        const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+        const response = await this.request<{ calls: CallAnalysisResult[] }>(url, {
+          method: 'GET',
+        });
+        
+        return this.processCollegeCallData(response.calls || []);
+      } catch (fallbackError) {
+        console.error("All endpoints failed, returning empty data:", fallbackError);
+        // If both endpoints fail, return empty data rather than throwing
+        return [];
+      }
     }
   }
 
@@ -464,13 +493,23 @@ export class VapiService {
       payload.assistant_id = this.assistantId;
     }
     
-    // Updated endpoint for campaign creation
-    const endpoint = `/assistants/${this.assistantId}/campaigns`;
-    
-    return this.request<any>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
+    // Try the API v1 endpoint first
+    try {
+      const endpoint = `/api/v1/campaigns`;
+      return this.request<any>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      console.error("Error with primary campaign endpoint, trying fallback:", error);
+      
+      // Fallback to the v1 endpoint
+      const endpoint = `/v1/campaigns`;
+      return this.request<any>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
   }
 
   async getCampaigns() {
@@ -478,25 +517,47 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     
-    // Updated endpoint for getting campaigns
-    const endpoint = `/assistants/${this.assistantId}/campaigns`;
-    
-    return this.request<{ campaigns: any[] }>(endpoint, {
-      method: 'GET'
-    });
+    // Try the API v1 endpoint first
+    try {
+      const endpoint = `/api/v1/campaigns`;
+      const queryParams = new URLSearchParams();
+      queryParams.append('assistant_id', this.assistantId);
+      
+      const url = `${endpoint}?${queryParams.toString()}`;
+      return this.request<{ campaigns: any[] }>(url, {
+        method: 'GET'
+      });
+    } catch (error) {
+      console.error("Error with primary campaigns endpoint, trying fallback:", error);
+      
+      // Fallback to the v1 endpoint
+      const endpoint = `/v1/campaigns`;
+      const queryParams = new URLSearchParams();
+      queryParams.append('assistant_id', this.assistantId);
+      
+      const url = `${endpoint}?${queryParams.toString()}`;
+      return this.request<{ campaigns: any[] }>(url, {
+        method: 'GET'
+      });
+    }
   }
 
   async getCampaign(campaignId: string) {
-    if (!this.assistantId) {
-      throw new Error("Assistant ID is required");
+    // Try the API v1 endpoint first
+    try {
+      const endpoint = `/api/v1/campaigns/${campaignId}`;
+      return this.request<any>(endpoint, {
+        method: 'GET'
+      });
+    } catch (error) {
+      console.error("Error with primary campaign endpoint, trying fallback:", error);
+      
+      // Fallback to the v1 endpoint
+      const endpoint = `/v1/campaigns/${campaignId}`;
+      return this.request<any>(endpoint, {
+        method: 'GET'
+      });
     }
-    
-    // Updated endpoint for getting a specific campaign
-    const endpoint = `/assistants/${this.assistantId}/campaigns/${campaignId}`;
-    
-    return this.request<any>(endpoint, {
-      method: 'GET'
-    });
   }
 
   async createOutboundCall(payload: {
@@ -516,29 +577,40 @@ export class VapiService {
       assistant_id: this.assistantId
     };
     
-    // Updated endpoint for creating an outbound call
-    const endpoint = `/assistants/${this.assistantId}/call`;
-    
-    return this.request<any>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(callPayload)
-    });
+    // Try the API v1 endpoint first
+    try {
+      const endpoint = `/api/v1/calls`;
+      return this.request<any>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(callPayload)
+      });
+    } catch (error) {
+      console.error("Error with primary outbound call endpoint, trying fallback:", error);
+      
+      // Fallback to the v1 endpoint
+      const endpoint = `/v1/calls`;
+      return this.request<any>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(callPayload)
+      });
+    }
   }
 
   async getCallRecordings(limit?: number) {
-    if (!this.assistantId) {
-      throw new Error("Assistant ID is required");
-    }
-    
-    // Updated endpoint for getting call recordings
-    const endpoint = `/assistants/${this.assistantId}/calls`;
-    const queryParams = new URLSearchParams();
-    
-    if (limit) {
-      queryParams.append('limit', limit.toString());
-    }
-    
+    // Try different endpoints based on VAPI API structure
     try {
+      // Try the new API v1 endpoint structure first
+      const endpoint = `/api/v1/calls`;
+      const queryParams = new URLSearchParams();
+      
+      if (this.assistantId) {
+        queryParams.append('assistant_id', this.assistantId);
+      }
+      
+      if (limit) {
+        queryParams.append('limit', limit.toString());
+      }
+      
       const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
       const response = await this.request<{ calls: any[] }>(url, {
         method: 'GET'
@@ -546,8 +618,31 @@ export class VapiService {
       
       return response.calls || [];
     } catch (error) {
-      console.error("Error fetching call recordings:", error);
-      return [];
+      console.error("Error with primary call recordings endpoint, trying fallback:", error);
+      
+      try {
+        // Fallback to the v1 endpoint
+        const endpoint = `/v1/calls`;
+        const queryParams = new URLSearchParams();
+        
+        if (this.assistantId) {
+          queryParams.append('assistant_id', this.assistantId);
+        }
+        
+        if (limit) {
+          queryParams.append('limit', limit.toString());
+        }
+        
+        const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+        const response = await this.request<{ calls: any[] }>(url, {
+          method: 'GET'
+        });
+        
+        return response.calls || [];
+      } catch (fallbackError) {
+        console.error("All endpoints failed, returning empty data:", fallbackError);
+        return [];
+      }
     }
   }
 }
