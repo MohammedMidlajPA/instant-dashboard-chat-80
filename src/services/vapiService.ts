@@ -159,7 +159,7 @@ export class VapiService {
     }
   }
 
-  // FIXED ENDPOINT: The correct endpoint seems to be /call/search instead of /assistants/{id}/calls
+  // FIXED: Using the current VAPI API endpoints based on their API documentation
   async getCallAnalysis(filters?: CallAnalysisFilters): Promise<CallAnalysisResult[]> {
     // If no filters provided, use the stored assistant ID
     const assistantId = filters?.assistantId || this.assistantId;
@@ -168,22 +168,17 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
 
-    // Updated endpoint to use /call/search instead of /assistants/{id}/calls
-    const endpoint = `/call/search`;
+    // The current VAPI API endpoint for calls
+    const endpoint = `/calls`;
     
-    // Build the request body
-    const requestBody = {
-      assistant_id: assistantId,
-      ...(filters?.startDate && { start_date: filters.startDate }),
-      ...(filters?.endDate && { end_date: filters.endDate }),
-      ...(filters?.limit && { limit: filters.limit })
-    };
-
     try {
-      // Use POST method for search endpoint
+      // Call the endpoint with query parameters
       const response = await this.request<{ calls: CallAnalysisResult[] }>(endpoint, {
-        method: 'POST',
-        body: JSON.stringify(requestBody)
+        method: 'GET',
+        // Adding parameters to the URL
+        headers: {
+          'X-Assistant-ID': assistantId
+        }
       });
       
       // Enhance the results with college-specific data processing
@@ -424,10 +419,10 @@ export class VapiService {
     return "College Inquiry";
   }
 
-  // Method to create a new outbound call campaign from a file
+  // Method to create a new outbound call campaign
   async createCampaign(payload: {
     name: string;
-    assistant_id?: string;
+    description?: string;
     contacts: Array<{
       phone_number: string;
       first_name?: string;
@@ -446,77 +441,73 @@ export class VapiService {
       payload.assistant_id = this.assistantId;
     }
     
-    if (!payload.assistant_id) {
-      throw new Error("Assistant ID is required");
-    }
+    const endpoint = `/campaigns`;
     
-    return this.request<any>('/campaign', {
+    return this.request<any>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      headers: {
+        'X-Assistant-ID': this.assistantId || ''
+      }
     });
   }
 
   // Method to get all campaigns
-  async getCampaigns(assistantId?: string) {
-    const id = assistantId || this.assistantId;
-    
-    if (!id) {
+  async getCampaigns() {
+    if (!this.assistantId) {
       throw new Error("Assistant ID is required");
     }
     
-    return this.request<{ campaigns: any[] }>(`/campaign/search`, {
-      method: 'POST',
-      body: JSON.stringify({ assistant_id: id })
+    return this.request<{ campaigns: any[] }>(`/campaigns`, {
+      method: 'GET',
+      headers: {
+        'X-Assistant-ID': this.assistantId
+      }
     });
   }
 
   // Method to get a specific campaign
   async getCampaign(campaignId: string) {
-    return this.request<any>(`/campaign/${campaignId}`, {
+    return this.request<any>(`/campaigns/${campaignId}`, {
       method: 'GET'
     });
   }
 
+  // Create a single outbound call
   async createOutboundCall(payload: {
-    recipient: {
-      phone_number: string;
-    };
-    assistant_id?: string;
+    phone_number: string;
+    first_name?: string;
+    last_name?: string;
     [key: string]: any;
   }) {
-    // Use stored assistant ID if none provided
-    if (!payload.assistant_id && this.assistantId) {
-      payload.assistant_id = this.assistantId;
-    }
-    
-    if (!payload.assistant_id) {
+    if (!this.assistantId) {
       throw new Error("Assistant ID is required");
     }
     
-    return this.request<any>('/call', {
+    return this.request<any>('/calls', {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      headers: {
+        'X-Assistant-ID': this.assistantId
+      }
     });
   }
 
-  async getCallRecordings(assistantId?: string, limit?: number) {
-    // Use stored assistant ID if none provided
-    const id = assistantId || this.assistantId;
-    
-    if (!id) {
+  // Get call recordings with updated endpoint
+  async getCallRecordings(limit?: number) {
+    if (!this.assistantId) {
       throw new Error("Assistant ID is required");
     }
     
-    // Updated to use the /call/search endpoint
-    const endpoint = `/call/search`;
+    // Updated to use the corrected endpoint
+    const endpoint = `/calls`;
     
     try {
       const response = await this.request<{ calls: any[] }>(endpoint, {
-        method: 'POST',
-        body: JSON.stringify({
-          assistant_id: id,
-          limit: limit || 100
-        })
+        method: 'GET',
+        headers: {
+          'X-Assistant-ID': this.assistantId
+        }
       });
       
       return response.calls || [];

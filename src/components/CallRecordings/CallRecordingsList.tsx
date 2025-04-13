@@ -59,10 +59,11 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
   React.useEffect(() => {
     if (!isLoading && recordings.length === 0) {
       // Try to check if there might be an API error
-      fetch("https://api.vapi.ai/assistants/380ff8dd-ca35-456e-9e9c-511bded18f09/calls", {
+      fetch("https://api.vapi.ai/calls", {
         method: "HEAD",
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem("vapi_api_key") || ""}`
+          "Authorization": `Bearer ${localStorage.getItem("vapi_api_key") || ""}`,
+          "X-Assistant-ID": localStorage.getItem("vapi_assistant_id") || ""
         }
       })
       .then(response => {
