@@ -171,18 +171,14 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     console.log("Fetching call analysis with assistant ID:", assistantId);
+    
     const endpoints = [
-      "/v1/call-analysis",
-      "/call-analysis",
-      "/v1/calls/analysis",
-      "/calls/analysis",
-      "/v1/assistants/call-analysis",
-      "/assistants/call-analysis",
-      "/v1/analytics/calls",
-      "/analytics/calls",
-      "/v1/calls",
-      "/calls"
+      "/api/v1/calls/list",
+      "/v1/calls/list",
+      "/api/v1/calls",
+      "/v1/calls"
     ];
+
     let lastError = null;
     for (const endpoint of endpoints) {
       try {
@@ -197,8 +193,10 @@ export class VapiService {
         if (filters?.endDate) {
           queryParams.append('end_date', filters.endDate);
         }
+        
         const url = `${endpoint}?${queryParams.toString()}`;
         console.log("Trying endpoint:", url);
+        
         try {
           const response = await this.request<{ calls: CallAnalysisResult[] }>(url, {
             method: 'GET',
@@ -208,13 +206,13 @@ export class VapiService {
         } catch (formatError1) {
           try {
             const response = await this.request<{ results: CallAnalysisResult[] }>(url, {
-              method: 'GET',
+              method: 'GET'
             });
             console.log("Success with endpoint format 2:", endpoint);
             return this.processCollegeCallData(response.results || []);
           } catch (formatError2) {
             const response = await this.request<CallAnalysisResult[]>(url, {
-              method: 'GET',
+              method: 'GET'
             });
             console.log("Success with endpoint format 3:", endpoint);
             return this.processCollegeCallData(response || []);
@@ -414,13 +412,14 @@ export class VapiService {
     if (!assistantId) {
       throw new Error("Assistant ID is required");
     }
-    console.log("Fetching logs with assistant ID:", assistantId);
+    
     const endpoints = [
-      "/v1/logs",
-      "/logs",
-      "/v1/assistants/logs",
-      "/assistants/logs"
+      "/api/v1/calls/logs",
+      "/v1/calls/logs",
+      "/api/v1/logs",
+      "/v1/logs"
     ];
+
     let lastError = null;
     for (const endpoint of endpoints) {
       try {
@@ -435,11 +434,13 @@ export class VapiService {
         if (filters?.endDate) {
           queryParams.append('end_date', filters.endDate);
         }
+        
         const url = `${endpoint}?${queryParams.toString()}`;
         console.log("Trying logs endpoint:", url);
+        
         try {
           const response = await this.request<{ logs: any[] }>(url, {
-            method: 'GET',
+            method: 'GET'
           });
           console.log("Success with logs endpoint format 1:", endpoint);
           return response.logs || [];
