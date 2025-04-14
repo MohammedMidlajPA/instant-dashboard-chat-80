@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -217,28 +218,22 @@ export class VapiService {
 
     console.log("Fetching call analysis with assistant ID:", assistantId);
 
-    // Try different endpoints based on VAPI API documentation findings
-    // Instead of embedding assistant ID in path, pass as query parameter
+    // Define the correct endpoints based on VAPI API
+    // Using query parameters as recommended in documentation
     const endpoints = [
-      // Based on documentation review - query parameter approach
-      `/assistants/call-analysis`,
-      `/v1/assistants/call-analysis`,
-      `/api/v1/assistants/call-analysis`,
+      // Main endpoints to try first - use query parameters
+      "/v1/call-analysis",
+      "/call-analysis",
+      "/v1/calls/analysis",
+      "/calls/analysis",
+      "/v1/assistants/call-analysis",
+      "/assistants/call-analysis",
       
-      // More general analytics endpoints
-      `/assistants/analytics`,
-      `/v1/assistants/analytics`,
-      `/api/v1/assistants/analytics`,
-      
-      // Call endpoints directly with query params
-      `/calls/analysis`,
-      `/v1/calls/analysis`,
-      `/api/v1/calls/analysis`,
-      
-      // Call listing endpoints with query params
-      `/calls`,
-      `/v1/calls`,
-      `/api/v1/calls`
+      // Additional endpoints to try
+      "/v1/analytics/calls",
+      "/analytics/calls",
+      "/v1/calls",
+      "/calls"
     ];
 
     let lastError = null;
@@ -247,7 +242,7 @@ export class VapiService {
       try {
         const queryParams = new URLSearchParams();
         
-        // Always pass the assistant_id as a query parameter
+        // Pass assistant_id as a query parameter, not in the path
         queryParams.append('assistant_id', assistantId);
         
         if (filters?.limit) {
@@ -265,23 +260,33 @@ export class VapiService {
         const url = `${endpoint}?${queryParams.toString()}`;
         console.log("Trying endpoint:", url);
 
-        // Different APIs might have different response structures
-        // Try different response formats
         try {
+          // Try different response formats
+          // Option 1: { calls: [...] }
           const response = await this.request<{ calls: CallAnalysisResult[] }>(url, {
             method: 'GET',
           });
           
-          console.log("Success with endpoint:", endpoint);
+          console.log("Success with endpoint format 1:", endpoint);
           return this.processCollegeCallData(response.calls || []);
-        } catch (formatError) {
-          // Maybe the response is an array directly
-          const response = await this.request<CallAnalysisResult[]>(url, {
-            method: 'GET',
-          });
-          
-          console.log("Success with endpoint (array format):", endpoint);
-          return this.processCollegeCallData(response || []);
+        } catch (formatError1) {
+          try {
+            // Option 2: { results: [...] }
+            const response = await this.request<{ results: CallAnalysisResult[] }>(url, {
+              method: 'GET',
+            });
+            
+            console.log("Success with endpoint format 2:", endpoint);
+            return this.processCollegeCallData(response.results || []);
+          } catch (formatError2) {
+            // Option 3: Direct array
+            const response = await this.request<CallAnalysisResult[]>(url, {
+              method: 'GET',
+            });
+            
+            console.log("Success with endpoint format 3:", endpoint);
+            return this.processCollegeCallData(response || []);
+          }
         }
       } catch (error) {
         console.error(`Failed with endpoint ${endpoint}:`, error);
@@ -517,8 +522,8 @@ export class VapiService {
     
     // Try different campaign endpoints using query parameter approach
     const endpoints = [
-      `/campaigns`,
       `/v1/campaigns`,
+      `/campaigns`,
       `/api/v1/campaigns`
     ];
     
@@ -553,8 +558,8 @@ export class VapiService {
     
     // Try different campaign endpoints
     const endpoints = [
-      `/campaigns`,
       `/v1/campaigns`,
+      `/campaigns`,
       `/api/v1/campaigns`
     ];
     
@@ -589,8 +594,8 @@ export class VapiService {
   async getCampaign(campaignId: string) {
     // Try different campaign endpoints
     const endpoints = [
-      `/campaigns/${campaignId}`,
       `/v1/campaigns/${campaignId}`,
+      `/campaigns/${campaignId}`,
       `/api/v1/campaigns/${campaignId}`
     ];
     
@@ -636,8 +641,8 @@ export class VapiService {
     
     // Try different call endpoints
     const endpoints = [
-      `/calls`,
       `/v1/calls`,
+      `/calls`,
       `/api/v1/calls`
     ];
     
@@ -668,12 +673,10 @@ export class VapiService {
     
     // Try different endpoints based on VAPI API documentation
     const endpoints = [
-      `/calls`,
       `/v1/calls`,
-      `/api/v1/calls`,
-      `/calls/recordings`,
+      `/calls`,
       `/v1/calls/recordings`,
-      `/api/v1/calls/recordings`
+      `/calls/recordings`
     ];
     
     let lastError = null;
@@ -692,12 +695,21 @@ export class VapiService {
         const url = `${endpoint}?${queryParams.toString()}`;
         console.log(`Trying to get call recordings with endpoint: ${url}`);
         
-        const response = await this.request<{ calls: any[] }>(url, {
-          method: 'GET'
-        });
-        
-        console.log("Call recordings retrieved successfully with endpoint:", endpoint);
-        return response.calls || [];
+        try {
+          const response = await this.request<{ calls: any[] }>(url, {
+            method: 'GET'
+          });
+          
+          console.log("Call recordings retrieved successfully with endpoint:", endpoint);
+          return response.calls || [];
+        } catch (formatError) {
+          const response = await this.request<any[]>(url, {
+            method: 'GET'
+          });
+          
+          console.log("Call recordings retrieved successfully with endpoint (array format):", endpoint);
+          return response || [];
+        }
       } catch (error) {
         console.error(`Failed to get call recordings with endpoint ${endpoint}:`, error);
         lastError = error;

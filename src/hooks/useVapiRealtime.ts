@@ -47,8 +47,6 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
       }
       
       // Get the assistant ID from options or from localStorage/service
-      // Use the provided ID first, fall back to the one from vapiService or localStorage
-      // Use the public key you provided: b6860fc3-a9da-4741-83ce-cb07c5725486
       const id = assistantId || vapiService.getAssistantId() || "b6860fc3-a9da-4741-83ce-cb07c5725486";
       
       if (!id) {
@@ -68,7 +66,7 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
 
       console.log("Fetching call data with assistant ID:", id);
 
-      // Use the new endpoint structure based on documentation review
+      // Use the correct query parameter structure based on documentation
       const callData = await vapiService.getCallAnalysis({
         assistantId: id,
         limit: 100,
