@@ -446,13 +446,13 @@ export class VapiService {
         } catch (formatError1) {
           try {
             const response = await this.request<{ results: any[] }>(url, {
-              method: 'GET',
+              method: 'GET'
             });
             console.log("Success with logs endpoint format 2:", endpoint);
             return response.results || [];
           } catch (formatError2) {
             const response = await this.request<any[]>(url, {
-              method: 'GET',
+              method: 'GET'
             });
             console.log("Success with logs endpoint format 3:", endpoint);
             return response || [];
