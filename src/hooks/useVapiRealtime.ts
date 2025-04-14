@@ -11,6 +11,10 @@ interface UseVapiRealtimeOptions {
   enabled?: boolean;
   retryLimit?: number;
   retryDelay?: number; // in milliseconds
+  endpoint?: string; // Optional endpoint override
+  limit?: number;
+  startDate?: string;
+  endDate?: string;
 }
 
 export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
@@ -21,7 +25,11 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
     onDataUpdate,
     enabled = true,
     retryLimit = 3,
-    retryDelay = 5000 // 5 seconds
+    retryDelay = 5000, // 5 seconds
+    endpoint,
+    limit = 100,
+    startDate,
+    endDate
   } = options;
 
   const [data, setData] = useState<T | null>(null);
@@ -47,7 +55,7 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
       }
       
       // Get the assistant ID from options or from localStorage/service
-      const id = assistantId || vapiService.getAssistantId() || "b6860fc3-a9da-4741-83ce-cb07c5725486";
+      const id = assistantId || vapiService.getAssistantId() || "380ff8dd-ca35-456e-9e9c-511bded18f09";
       
       if (!id) {
         throw new Error("Assistant ID not found. Please check your configuration.");
@@ -64,17 +72,28 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         return;
       }
 
-      console.log("Fetching call data with assistant ID:", id);
+      console.log("Fetching data with assistant ID:", id);
 
       // Use the correct query parameter structure based on documentation
-      const callData = await vapiService.getCallAnalysis({
+      const params: any = {
         assistantId: id,
-        limit: 100,
-      });
+        limit: limit,
+      };
+      
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      
+      // If an endpoint is specified, use it for specialized API calls
+      let callData;
+      if (endpoint === 'logs') {
+        callData = await vapiService.getLogs(params);
+      } else {
+        callData = await vapiService.getCallAnalysis(params);
+      }
 
       if (!isMountedRef.current) return;
 
-      console.log("Call data received:", callData);
+      console.log("Data received:", callData);
 
       // Reset retry count on successful fetch
       setRetryCount(0);
@@ -119,7 +138,7 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         setIsLoading(false);
       }
     }
-  }, [assistantId, enabled, fetchInterval, onDataUpdate, retryCount, retryLimit, retryDelay]);
+  }, [assistantId, enabled, fetchInterval, onDataUpdate, retryCount, retryLimit, retryDelay, endpoint, limit, startDate, endDate]);
 
   // Start the polling
   useEffect(() => {
