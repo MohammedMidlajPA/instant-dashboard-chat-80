@@ -27,6 +27,7 @@ export interface CallSummary {
   from?: string;
   to?: string;
   recording_url?: string;
+  analysis?: CallAnalysis;   // Added analysis field to base type
 }
 
 export interface CallAnalysis {
@@ -66,12 +67,23 @@ export interface GoogleSheetsRowAppendToolConfig {
 
 // Extend CallDetails to include scheduling and transcription details
 export interface CallDetails extends CallSummary {
+  // Override the transcription property with an object type 
+  // but keep the string version available too
+  transcript?: string;  // Add transcript as alternative for transcription
+  messages?: Array<{
+    role: string;        // "assistant"/"bot", "user", or "system"
+    message: string;     // text of the utterance
+    time?: number;       // timestamp (ms since epoch)
+    secondsFromStart?: number;
+  }>;
+  recordingUrl?: string; // Alternative to recording_url
+  costBreakdown?: Record<string, number>;
   scheduling?: {
     scheduledTime?: string;
     actualStartTime?: string;
     status?: 'scheduled' | 'completed' | 'failed';
   };
-  transcription?: {
+  transcriptionDetails?: {  // Use a different name to avoid conflict
     method?: 'default' | 'google' | 'openai';
     fallbackPlan?: string[];
     confidence?: number;

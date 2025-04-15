@@ -1,6 +1,9 @@
 import { 
   BatchCallRequest, 
-  GoogleSheetsRowAppendToolConfig 
+  GoogleSheetsRowAppendToolConfig,
+  CallSummary,
+  CallDetails,
+  CallAnalysisFilters
 } from './types';
 import { fetchCredentials, getAuthHeaders, getAssistantId } from './credentials';
 import { toast } from "sonner";
@@ -8,6 +11,7 @@ import { toast } from "sonner";
 const BASE_URL = "https://api.vapi.ai";
 let retryCount = 0;
 const maxRetries = 3;
+let vapiApiKey: string | null = null;
 
 /**
  * Makes a request to the Vapi API with retry handling

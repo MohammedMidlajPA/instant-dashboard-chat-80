@@ -101,14 +101,17 @@ export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
   const duration = call.duration 
     ? `${Math.floor(call.duration / 60)}m ${call.duration % 60}s` 
     : "Unknown";
+  // Use transcription field, with transcript as fallback
   const transcript = call.transcription || call.transcript || "No transcript available";
   
   // Determine call success
   let callSuccessful: boolean | null = null;
   
-  // Use analysis.success_evaluation or check if it's directly in the call object
+  // Use analysis.successEvaluation, success_evaluation or check directly in the call object
   if (call.analysis?.successEvaluation !== undefined) {
     callSuccessful = !!call.analysis.successEvaluation;
+  } else if (call.success_evaluation !== undefined) {
+    callSuccessful = !!call.success_evaluation;
   } else if (call.sentiment) {
     callSuccessful = call.sentiment.toLowerCase() === "positive";
   }
@@ -152,7 +155,7 @@ export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
           <TabsList className="mb-4">
             <TabsTrigger value="transcript">Transcript</TabsTrigger>
             <TabsTrigger value="keywords">Keywords & Topics</TabsTrigger>
-            {call.recording_url && <TabsTrigger value="recording">Recording</TabsTrigger>}
+            {(call.recording_url || call.recordingUrl) && <TabsTrigger value="recording">Recording</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="transcript">
@@ -181,11 +184,11 @@ export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
             )}
           </TabsContent>
           
-          {call.recording_url && (
+          {(call.recording_url || call.recordingUrl) && (
             <TabsContent value="recording">
               <div className="p-4 rounded-md bg-gray-50">
                 <h3 className="text-sm font-medium mb-2">Call Recording</h3>
-                <audio controls className="w-full" src={call.recording_url}>
+                <audio controls className="w-full" src={call.recording_url || call.recordingUrl}>
                   Your browser does not support the audio element.
                 </audio>
               </div>
