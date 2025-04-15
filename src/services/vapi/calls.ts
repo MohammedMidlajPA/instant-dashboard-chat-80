@@ -205,12 +205,14 @@ function processCallData(calls: CallSummary[]): CallSummary[] {
       sentiment: call.sentiment,
       transcription: call.transcription,
       recording_url: call.recording_url || call.recordingUrl,
+      recordingUrl: call.recordingUrl || call.recording_url,
       contact_name: call.contact_name,
       company_name: call.company_name,
       keywords: call.keywords || [],
       inquiry_type: call.inquiry_type,
       from: call.from,
-      to: call.to
+      to: call.to,
+      success_evaluation: call.success_evaluation
     };
     
     // Extract contact name if not present

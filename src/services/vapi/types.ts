@@ -1,3 +1,4 @@
+
 // Call data types based on Vapi API
 export interface CallSummary { 
   id: string;
@@ -27,6 +28,8 @@ export interface CallSummary {
   from?: string;
   to?: string;
   recording_url?: string;
+  recordingUrl?: string;     // Alternative field name for recording URL
+  success_evaluation?: number; // Adding success_evaluation to base type
   analysis?: CallAnalysis;   // Added analysis field to base type
 }
 
@@ -70,6 +73,7 @@ export interface CallDetails extends CallSummary {
   // Override the transcription property with an object type 
   // but keep the string version available too
   transcript?: string;  // Add transcript as alternative for transcription
+  success_evaluation?: number; // Explicitly add success_evaluation to CallDetails
   messages?: Array<{
     role: string;        // "assistant"/"bot", "user", or "system"
     message: string;     // text of the utterance

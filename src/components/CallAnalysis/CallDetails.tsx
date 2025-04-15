@@ -107,9 +107,11 @@ export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
   // Determine call success
   let callSuccessful: boolean | null = null;
   
-  // Use analysis.successEvaluation, success_evaluation or check directly in the call object
+  // Check all possible locations for success evaluation data
   if (call.analysis?.successEvaluation !== undefined) {
     callSuccessful = !!call.analysis.successEvaluation;
+  } else if (call.analysis?.success_evaluation !== undefined) {
+    callSuccessful = !!call.analysis.success_evaluation;
   } else if (call.success_evaluation !== undefined) {
     callSuccessful = !!call.success_evaluation;
   } else if (call.sentiment) {
