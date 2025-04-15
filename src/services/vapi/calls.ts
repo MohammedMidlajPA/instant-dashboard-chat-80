@@ -1,5 +1,8 @@
+import { 
+  BatchCallRequest, 
+  GoogleSheetsRowAppendToolConfig 
+} from './types';
 import { fetchCredentials, getAuthHeaders, getAssistantId } from './credentials';
-import { CallSummary, CallDetails, CallAnalysisFilters } from './types';
 import { toast } from "sonner";
 
 const BASE_URL = "https://api.vapi.ai";
@@ -384,4 +387,75 @@ export function computeCallDuration(call: CallSummary): string {
   }
   
   return `${minutes}m ${seconds}s`;
+}
+
+/**
+ * Initiate batch calls to multiple customers
+ */
+export async function initiateBatchCalls(batchRequest: BatchCallRequest): Promise<CallSummary[]> {
+  if (!vapiApiKey) {
+    await fetchCredentials();
+  }
+
+  try {
+    const url = 'https://api.vapi.ai/call/batch';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...batchRequest,
+        assistantId: batchRequest.assistantId || getAssistantId()
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Batch call initiation failed: ${errorText}`);
+    }
+
+    const calls = await response.json();
+    toast.success(`Initiated ${calls.length} calls successfully`);
+    return calls;
+  } catch (error) {
+    console.error('Batch call initiation error:', error);
+    toast.error('Failed to initiate batch calls');
+    throw error;
+  }
+}
+
+/**
+ * Append rows to a Google Sheet via Vapi
+ */
+export async function appendToGoogleSheet(config: GoogleSheetsRowAppendToolConfig): Promise<any> {
+  if (!vapiApiKey) {
+    await fetchCredentials();
+  }
+
+  try {
+    const url = 'https://api.vapi.ai/tools/google-sheets/append';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(config)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Google Sheets append failed: ${errorText}`);
+    }
+
+    const result = await response.json();
+    toast.success('Rows appended to Google Sheet successfully');
+    return result;
+  } catch (error) {
+    console.error('Google Sheets append error:', error);
+    toast.error('Failed to append rows to Google Sheet');
+    throw error;
+  }
 }

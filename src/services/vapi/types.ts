@@ -1,4 +1,3 @@
-
 // Call data types based on Vapi API
 export interface CallSummary { 
   id: string;
@@ -37,25 +36,44 @@ export interface CallAnalysis {
   success_evaluation?: number; // Alternative field name
 }
 
-export interface CallDetails extends CallSummary {
-  analysis?: CallAnalysis;
-  transcript?: string;
-  transcription?: string; // Alternative field name
-  messages?: Array<{
-    role: string;        // "assistant"/"bot", "user", or "system"
-    message: string;     // text of the utterance
-    time?: number;       // timestamp (ms since epoch)
-    secondsFromStart?: number;
-  }>;
-  recordingUrl?: string;
-  recording_url?: string; // Alternative field name
-  costBreakdown?: Record<string, number>;
-}
-
 export interface CallAnalysisFilters {
   assistantId?: string;
   startDate?: string;
   endDate?: string;
   limit?: number;
   fetchAll?: boolean;
+}
+
+// Extend existing types to support batch call operations
+export interface BatchCallRequest {
+  customers: Array<{
+    phoneNumber: string;
+    metadata?: Record<string, any>;
+  }>;
+  assistantId?: string;
+  scheduling?: {
+    earliestTime?: string;
+    latestTime?: string;
+  };
+}
+
+// Add Google Sheets tool types
+export interface GoogleSheetsRowAppendToolConfig {
+  spreadsheetId: string;
+  sheetName: string;
+  rows: any[];
+}
+
+// Extend CallDetails to include scheduling and transcription details
+export interface CallDetails extends CallSummary {
+  scheduling?: {
+    scheduledTime?: string;
+    actualStartTime?: string;
+    status?: 'scheduled' | 'completed' | 'failed';
+  };
+  transcription?: {
+    method?: 'default' | 'google' | 'openai';
+    fallbackPlan?: string[];
+    confidence?: number;
+  };
 }
