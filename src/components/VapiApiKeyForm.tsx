@@ -39,6 +39,9 @@ export function VapiApiKeyForm({ onApiKeySet }: VapiApiKeyFormProps) {
         if (hasCredentials && onApiKeySet) {
           onApiKeySet(true);
         }
+        
+        console.log("Vapi connection status:", hasCredentials ? "Connected" : "Disconnected");
+        console.log("Using assistant ID:", assistantId);
       } catch (error) {
         console.error("Error checking API key:", error);
         toast.error("Failed to check API key status");

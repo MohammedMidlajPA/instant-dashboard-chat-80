@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -171,12 +172,13 @@ export class VapiService {
       throw new Error("Assistant ID is required");
     }
     console.log("Fetching call analysis with assistant ID:", assistantId);
-    
+
+    // Updated to match Vapi API's actual endpoints based on documentation
     const endpoints = [
-      "/api/v1/calls/list",
-      "/v1/calls/list",
+      "/v1/calls",
       "/api/v1/calls",
-      "/v1/calls"
+      "/v1/calls/list",
+      "/api/v1/calls/list"
     ];
 
     let lastError = null;
@@ -198,6 +200,7 @@ export class VapiService {
         console.log("Trying endpoint:", url);
         
         try {
+          // First format attempt
           const response = await this.request<{ calls: CallAnalysisResult[] }>(url, {
             method: 'GET',
           });
@@ -205,22 +208,34 @@ export class VapiService {
           return this.processCollegeCallData(response.calls || []);
         } catch (formatError1) {
           try {
+            // Second format attempt
             const response = await this.request<{ results: CallAnalysisResult[] }>(url, {
               method: 'GET'
             });
             console.log("Success with endpoint format 2:", endpoint);
             return this.processCollegeCallData(response.results || []);
           } catch (formatError2) {
-            const response = await this.request<CallAnalysisResult[]>(url, {
-              method: 'GET'
-            });
-            console.log("Success with endpoint format 3:", endpoint);
-            return this.processCollegeCallData(response || []);
+            try {
+              // Third format attempt - direct array
+              const response = await this.request<CallAnalysisResult[]>(url, {
+                method: 'GET'
+              });
+              console.log("Success with endpoint format 3:", endpoint);
+              return this.processCollegeCallData(response || []);
+            } catch (formatError3) {
+              // Try one more format that might be used
+              const response = await this.request<{ data: CallAnalysisResult[] }>(url, {
+                method: 'GET'
+              });
+              console.log("Success with endpoint format 4:", endpoint);
+              return this.processCollegeCallData(response.data || []);
+            }
           }
         }
       } catch (error) {
         console.error(`Failed with endpoint ${endpoint}:`, error);
         lastError = error;
+        // Continue to try the next endpoint
       }
     }
     console.error("All endpoints failed, returning empty data:", lastError);
@@ -408,16 +423,17 @@ export class VapiService {
   }
 
   async getLogs(filters?: CallAnalysisFilters): Promise<any[]> {
-    const assistantId = filters?.assistantId || this.assistantId || "380ff8dd-ca35-456e-9e9c-511bded18f09";
+    const assistantId = filters?.assistantId || this.assistantId || "b6860fc3-a9da-4741-83ce-cb07c5725486";
     if (!assistantId) {
       throw new Error("Assistant ID is required");
     }
     
+    // Updated to match Vapi API's actual endpoints for logs
     const endpoints = [
-      "/api/v1/calls/logs",
+      "/v1/logs",
+      "/api/v1/logs", 
       "/v1/calls/logs",
-      "/api/v1/logs",
-      "/v1/logs"
+      "/api/v1/calls/logs"
     ];
 
     let lastError = null;
@@ -439,6 +455,7 @@ export class VapiService {
         console.log("Trying logs endpoint:", url);
         
         try {
+          // First format attempt
           const response = await this.request<{ logs: any[] }>(url, {
             method: 'GET'
           });
@@ -446,22 +463,34 @@ export class VapiService {
           return response.logs || [];
         } catch (formatError1) {
           try {
+            // Second format attempt
             const response = await this.request<{ results: any[] }>(url, {
               method: 'GET'
             });
             console.log("Success with logs endpoint format 2:", endpoint);
             return response.results || [];
           } catch (formatError2) {
-            const response = await this.request<any[]>(url, {
-              method: 'GET'
-            });
-            console.log("Success with logs endpoint format 3:", endpoint);
-            return response || [];
+            try {
+              // Third format attempt - direct array
+              const response = await this.request<any[]>(url, {
+                method: 'GET'
+              });
+              console.log("Success with logs endpoint format 3:", endpoint);
+              return response || [];
+            } catch (formatError3) {
+              // Try one more format that might be used
+              const response = await this.request<{ data: any[] }>(url, {
+                method: 'GET'
+              });
+              console.log("Success with logs endpoint format 4:", endpoint);
+              return response.data || [];
+            }
           }
         }
       } catch (error) {
         console.error(`Failed with logs endpoint ${endpoint}:`, error);
         lastError = error;
+        // Continue to try the next endpoint
       }
     }
     console.error("All logs endpoints failed, returning empty data:", lastError);

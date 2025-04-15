@@ -41,6 +41,7 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
   const intervalRef = useRef<number | null>(null);
   const lastFetchTimeRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
+  const connectionAttemptsRef = useRef<number>(0);
 
   // Function to fetch data from VAPI
   const fetchData = useCallback(async (force = false) => {
@@ -55,7 +56,7 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
       }
       
       // Get the assistant ID from options or from localStorage/service
-      const id = assistantId || vapiService.getAssistantId() || "380ff8dd-ca35-456e-9e9c-511bded18f09";
+      const id = assistantId || vapiService.getAssistantId() || "b6860fc3-a9da-4741-83ce-cb07c5725486";
       
       if (!id) {
         throw new Error("Assistant ID not found. Please check your configuration.");
@@ -97,6 +98,7 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
 
       // Reset retry count on successful fetch
       setRetryCount(0);
+      connectionAttemptsRef.current = 0;
       
       // Update state with new data
       setData(callData as unknown as T);
@@ -128,10 +130,21 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
           }
         }, retryDelay);
       } else {
-        // Only show toast if this is the last retry attempt and not the initial fetch
-        if (lastFetchTimeRef.current > 0) {
+        // Track connection attempts to avoid spamming the user with error messages
+        connectionAttemptsRef.current += 1;
+        
+        // Only show toast if this is the last retry attempt and not the initial fetch,
+        // and limit frequency of error messages
+        if (lastFetchTimeRef.current > 0 && connectionAttemptsRef.current <= 3) {
           toast.error("Lost connection to VAPI. Please try refreshing the page.");
         }
+        
+        // Reset retry count after a while to allow future retry attempts
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            setRetryCount(0);
+          }
+        }, fetchInterval * 2);
       }
     } finally {
       if (isMountedRef.current) {
@@ -167,6 +180,7 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
   // Method to manually trigger a fetch
   const refetch = useCallback(() => {
     setRetryCount(0); // Reset retry count on manual refetch
+    connectionAttemptsRef.current = 0; // Reset connection attempts
     return fetchData(true); // Force fetch
   }, [fetchData]);
 
