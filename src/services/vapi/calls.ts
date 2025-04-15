@@ -1,4 +1,3 @@
-
 import { fetchCredentials, getAuthHeaders, getAssistantId } from './credentials';
 import { CallSummary, CallDetails, CallAnalysisFilters } from './types';
 import { toast } from "sonner";

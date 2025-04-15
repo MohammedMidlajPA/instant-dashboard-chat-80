@@ -13,7 +13,8 @@ import {
   Home,
   PhoneCall,
   Phone,
-  Megaphone
+  Megaphone,
+  LineChart
 } from "lucide-react";
 
 export const AppSidebar = () => {
@@ -29,6 +30,11 @@ export const AppSidebar = () => {
       name: "Call Recordings",
       to: "/call-recordings",
       icon: <PhoneCall className="h-5 w-5" />,
+    },
+    {
+      name: "Call Analytics",
+      to: "/call-analytics",
+      icon: <LineChart className="h-5 w-5" />,
     },
     {
       name: "Campaigns",
