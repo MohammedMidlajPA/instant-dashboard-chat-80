@@ -11,7 +11,7 @@ serve(async (req) => {
   try {
     // Using the fixed API key
     const vapiApiKey = "10176cf2-5ee4-4ba2-b89a-4b3c18124215";
-    const vapiAssistantId = Deno.env.get("VAPI_ASSISTANT_ID") || "380ff8dd-ca35-456e-9e9c-511bded18f09";
+    const vapiAssistantId = Deno.env.get("VAPI_ASSISTANT_ID") || "b6860fc3-a9da-4741-83ce-cb07c5725486";
 
     if (!vapiApiKey || !vapiAssistantId) {
       return new Response(
@@ -28,6 +28,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Providing VAPI credentials - AssistantID:", vapiAssistantId);
+
     // Return the VAPI credentials
     return new Response(
       JSON.stringify({
@@ -43,6 +45,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error("Error in get-vapi-keys function:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

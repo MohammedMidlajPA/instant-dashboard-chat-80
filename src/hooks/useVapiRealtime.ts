@@ -42,10 +42,14 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
   const lastFetchTimeRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
   const connectionAttemptsRef = useRef<number>(0);
+  const fetchInProgressRef = useRef<boolean>(false);
 
   // Function to fetch data from VAPI
   const fetchData = useCallback(async (force = false) => {
-    if (!enabled || !isMountedRef.current) return;
+    if (!enabled || !isMountedRef.current || fetchInProgressRef.current) return;
+    
+    // Set fetch in progress to prevent concurrent calls
+    fetchInProgressRef.current = true;
     
     try {
       setIsLoading(true);
@@ -70,10 +74,11 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
       if (!force && lastFetchTimeRef.current > 0 && timeSinceLastFetch < fetchInterval * 0.8) {
         console.log(`Skipping fetch: last fetch was ${timeSinceLastFetch}ms ago`);
         setIsLoading(false);
+        fetchInProgressRef.current = false;
         return;
       }
 
-      console.log("Fetching data with assistant ID:", id);
+      console.log("Fetching VAPI data with assistant ID:", id, endpoint ? `(endpoint: ${endpoint})` : "");
 
       // Use the correct query parameter structure based on documentation
       const params: any = {
@@ -92,9 +97,12 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         callData = await vapiService.getCallAnalysis(params);
       }
 
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current) {
+        fetchInProgressRef.current = false;
+        return;
+      }
 
-      console.log("Data received:", callData);
+      console.log("Data received from VAPI:", callData);
 
       // Reset retry count on successful fetch
       setRetryCount(0);
@@ -110,7 +118,10 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         onDataUpdate(callData);
       }
     } catch (err) {
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current) {
+        fetchInProgressRef.current = false;
+        return;
+      }
       
       console.error("Error fetching real-time data from VAPI:", err);
       setError(err instanceof Error ? err : new Error('Failed to fetch VAPI data'));
@@ -126,6 +137,7 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         // Schedule retry
         setTimeout(() => {
           if (isMountedRef.current) {
+            fetchInProgressRef.current = false;
             fetchData(true); // Force fetch on retry
           }
         }, retryDelay);
@@ -143,12 +155,18 @@ export function useVapiRealtime<T = any>(options: UseVapiRealtimeOptions = {}) {
         setTimeout(() => {
           if (isMountedRef.current) {
             setRetryCount(0);
+            fetchInProgressRef.current = false;
           }
         }, fetchInterval * 2);
       }
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
+        
+        // Only mark fetch as complete if we're not in a retry cycle
+        if (retryCount >= retryLimit || retryCount === 0) {
+          fetchInProgressRef.current = false;
+        }
       }
     }
   }, [assistantId, enabled, fetchInterval, onDataUpdate, retryCount, retryLimit, retryDelay, endpoint, limit, startDate, endDate]);
