@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,7 @@ export function AppSidebar() {
   }, [isMobile]);
 
   return (
-    <Sidebar collapsed={collapsed} onCollapsedChange={setCollapsed}>
+    <Sidebar>
       <div className="flex h-full flex-col">
         <div className="flex h-14 items-center border-b px-5 lg:h-[60px]">
           <Link 
