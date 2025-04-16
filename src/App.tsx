@@ -58,7 +58,7 @@ const router = createBrowserRouter([
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="mcube-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="mcube-theme">
       <RouterProvider router={router} />
     </ThemeProvider>
   );

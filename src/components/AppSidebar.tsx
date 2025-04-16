@@ -1,15 +1,10 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sidebar, SidebarTrigger } from "@/components/ui/sidebar";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
-import { mcubeService } from "@/services/mcube";
-import { useMediaQuery } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/ui/theme-provider";
 
 import { 
@@ -20,56 +15,17 @@ import {
   Settings2,
   Users,
   PhoneOutgoing,
-  Loader2,
   SunMoon,
   Moon,
-  Sun
+  Sun,
+  LogOut,
+  Home
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 export function AppSidebar() {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
-  const isMobile = useMediaQuery("(max-width: 768px)");
-  const [collapsed, setCollapsed] = useState(isMobile);
-  const [agentPhone, setAgentPhone] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const { theme, setTheme } = useTheme();
-
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
-      setCollapsed(mobile);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const handleMakeCall = async () => {
-    if (!agentPhone || !customerPhone) {
-      toast.error("Agent and customer phone numbers are required");
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      const result = await mcubeService.makeOutboundCall(agentPhone, customerPhone);
-      
-      if (result.success) {
-        toast.success("Call initiated successfully");
-        setCustomerPhone(""); // Reset only customer phone
-      } else {
-        toast.error(result.message || "Failed to initiate call");
-      }
-    } catch (error) {
-      console.error("Failed to make call:", error);
-      toast.error("An error occurred while trying to initiate the call");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -77,8 +33,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <div className="flex h-full flex-col bg-background border-r">
-        <div className="flex h-14 items-center px-5 lg:h-[60px] bg-primary text-primary-foreground">
+      <div className="flex h-full flex-col border-r border-border sidebar-gradient dark:bg-sidebar">
+        <div className="flex h-16 items-center px-5 bg-primary text-primary-foreground dark:header-gradient">
           <Link 
             to="/" 
             className="flex items-center gap-2 font-medium transition-colors"
@@ -86,71 +42,8 @@ export function AppSidebar() {
             <Phone className="h-5 w-5" />
             <span className="text-lg font-semibold tracking-tight">MCUBE Call Center</span>
           </Link>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleTheme} 
-            className="ml-auto text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-          >
-            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-          <SidebarTrigger className="ml-2 h-8 w-8 text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" />
+          <SidebarTrigger className="ml-auto h-8 w-8 text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" />
         </div>
-        
-        <Card className="m-3 border shadow-sm">
-          <CardHeader className="px-3 py-2 bg-muted/30 border-b">
-            <CardTitle className="text-sm font-medium flex items-center gap-2 text-primary">
-              <PhoneOutgoing className="h-4 w-4" />
-              Quick Outbound Call
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 py-3 space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="agentPhone" className="text-xs font-medium">
-                Agent Phone
-              </Label>
-              <Input
-                id="agentPhone"
-                value={agentPhone}
-                onChange={(e) => setAgentPhone(e.target.value)}
-                placeholder="8767316316"
-                className="h-8 text-sm"
-              />
-            </div>
-            
-            <div className="space-y-1.5">
-              <Label htmlFor="customerPhone" className="text-xs font-medium">
-                Customer Phone
-              </Label>
-              <Input
-                id="customerPhone"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="5551234567"
-                className="h-8 text-sm"
-              />
-            </div>
-            
-            <Button 
-              className="w-full bg-primary hover:bg-primary/90" 
-              size="sm" 
-              disabled={isLoading || !agentPhone || !customerPhone}
-              onClick={handleMakeCall}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Initiating...
-                </>
-              ) : (
-                <>
-                  <Phone className="h-4 w-4 mr-2" />
-                  Start Call
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
         
         <Separator className="my-2" />
         
@@ -162,10 +55,22 @@ export function AppSidebar() {
                 className="w-full justify-start"
                 size="sm"
               >
-                <Phone className="mr-2 h-4 w-4" />
-                <span>Call Dashboard</span>
+                <Home className="mr-2 h-4 w-4" />
+                <span>Dashboard</span>
               </Button>
             </Link>
+            
+            <Link to="/outbound-calling">
+              <Button
+                variant={isActive("/outbound-calling") ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                size="sm"
+              >
+                <PhoneOutgoing className="mr-2 h-4 w-4" />
+                <span>Outbound Calls</span>
+              </Button>
+            </Link>
+            
             <Link to="/campaigns">
               <Button
                 variant={isActive("/campaigns") ? "secondary" : "ghost"}
@@ -176,6 +81,7 @@ export function AppSidebar() {
                 <span>Campaigns</span>
               </Button>
             </Link>
+            
             <Link to="/calendar">
               <Button
                 variant={isActive("/calendar") ? "secondary" : "ghost"}
@@ -186,6 +92,7 @@ export function AppSidebar() {
                 <span>Calendar</span>
               </Button>
             </Link>
+            
             <Link to="/contacts">
               <Button
                 variant={isActive("/contacts") ? "secondary" : "ghost"}
@@ -196,6 +103,7 @@ export function AppSidebar() {
                 <span>Contacts</span>
               </Button>
             </Link>
+            
             <Link to="/profile">
               <Button
                 variant={isActive("/profile") ? "secondary" : "ghost"}
@@ -206,6 +114,7 @@ export function AppSidebar() {
                 <span>Profile</span>
               </Button>
             </Link>
+            
             <Link to="/settings">
               <Button
                 variant={isActive("/settings") ? "secondary" : "ghost"}
@@ -218,15 +127,44 @@ export function AppSidebar() {
             </Link>
           </nav>
         </ScrollArea>
-        <div className="mt-auto p-4 border-t bg-muted/30">
-          <div className="grid gap-1">
-            <div className="text-xs text-primary font-medium">
+        
+        <div className="mt-auto p-4 border-t border-border bg-muted/10 dark:bg-sidebar-accent/20">
+          <div className="flex justify-between items-center mb-3">
+            <div className="text-xs text-foreground font-medium">
               MCUBE Call Center
             </div>
-            <div className="text-xs text-muted-foreground">v1.0.0</div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-full"
+              onClick={toggleTheme}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4 text-yellow-400" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="https://github.com/shadcn.png" />
+              <AvatarFallback>MC</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-medium truncate">Jason Matthews</p>
+              <p className="text-xs text-muted-foreground truncate">Support Agent</p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
     </Sidebar>
   );
 }
+
+// Import components used in the sidebar
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

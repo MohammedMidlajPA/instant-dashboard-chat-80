@@ -46,41 +46,41 @@
   }
  
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
     
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
     
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
     
     --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 210 40% 98%;
+    --primary-foreground: 0 0% 98%;
     
     --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary-foreground: 0 0% 98%;
     
     --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted-foreground: 0 0% 65.1%;
     
     --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent-foreground: 0 0% 98%;
     
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
     
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
 
-    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-background: 225 14% 10%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 217.2 91.2% 59.8%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent: 217.2 32.6% 22%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-border: 215 28% 17%;
     --sidebar-ring: 224.3 76.3% 48%;
   }
 }
@@ -116,3 +116,29 @@
 .dark .glass-morphism {
   @apply backdrop-blur-md bg-background/80 border border-border/30;
 }
+
+.card-gradient {
+  @apply bg-gradient-to-br from-card to-secondary/80 backdrop-blur-sm;
+}
+
+/* Dark theme specific styles */
+.dark .shadowed-card {
+  @apply shadow-[0_8px_30px_rgb(0,0,0,0.12)];
+}
+
+.dark .header-gradient {
+  @apply bg-gradient-to-r from-purple-800/80 via-blue-800/80 to-purple-800/80;
+}
+
+.dark .sidebar-gradient {
+  @apply bg-gradient-to-b from-[#1A1F2C] to-[#1A1F2C]/90;
+}
+
+.neo-btn {
+  @apply transition-all duration-200 hover:shadow-lg active:shadow-inner;
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-primary via-blue-600 to-purple-600 bg-clip-text text-transparent font-bold;
+}
+

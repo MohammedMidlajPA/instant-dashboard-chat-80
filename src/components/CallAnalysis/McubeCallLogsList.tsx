@@ -32,7 +32,7 @@ export const McubeCallLogsList: React.FC<McubeCallLogsListProps> = ({
     return (
       <div className="space-y-2">
         {[...Array(5)].map((_, i) => (
-          <Card key={i} className="p-3">
+          <Card key={i} className="p-3 bg-background/50 dark:bg-sidebar-accent/30">
             <div className="flex justify-between mb-2">
               <Skeleton className="h-4 w-1/3" />
               <Skeleton className="h-4 w-20" />
@@ -50,7 +50,7 @@ export const McubeCallLogsList: React.FC<McubeCallLogsListProps> = ({
   if (calls.length === 0) {
     return (
       <div className="py-8 text-center text-muted-foreground">
-        <PhoneCall className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+        <PhoneCall className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
         <p>No call records found</p>
       </div>
     );
@@ -61,8 +61,10 @@ export const McubeCallLogsList: React.FC<McubeCallLogsListProps> = ({
       {calls.map((call) => (
         <Card
           key={call.id}
-          className={`p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
-            selectedCallId === call.id ? "ring-2 ring-primary bg-muted" : ""
+          className={`p-3 cursor-pointer transition-all duration-200 hover:shadow-md dark:hover:bg-sidebar-accent/40 ${
+            selectedCallId === call.id 
+              ? "ring-2 ring-primary dark:bg-sidebar-accent/50 shadow-md" 
+              : "dark:bg-sidebar-accent/20"
           }`}
           onClick={() => onSelectCall(call.id)}
         >
@@ -87,7 +89,7 @@ export const McubeCallLogsList: React.FC<McubeCallLogsListProps> = ({
           
           {call.companyName && (
             <div className="mt-1">
-              <Badge variant="outline" className="text-xs bg-background/50">
+              <Badge variant="outline" className="text-xs bg-background/50 dark:bg-sidebar/50">
                 {call.companyName}
               </Badge>
             </div>
