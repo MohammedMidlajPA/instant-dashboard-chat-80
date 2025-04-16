@@ -3,7 +3,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sidebar, SidebarToggleButton } from "@/components/ui/sidebar";
+import { Sidebar, SidebarTrigger } from "@/components/ui/sidebar";
 import { useMediaQuery } from "@/hooks/use-mobile";
 
 import { 
@@ -25,9 +25,14 @@ export function AppSidebar() {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const [collapsed, setCollapsed] = React.useState(isMobile);
+
+  React.useEffect(() => {
+    setCollapsed(isMobile);
+  }, [isMobile]);
 
   return (
-    <Sidebar defaultCollapsed={isMobile}>
+    <Sidebar collapsed={collapsed} onCollapsedChange={setCollapsed}>
       <div className="flex h-full flex-col">
         <div className="flex h-14 items-center border-b px-5 lg:h-[60px]">
           <Link 
@@ -37,7 +42,7 @@ export function AppSidebar() {
             <GraduationCap className="h-5 w-5" />
             <span className="text-lg font-semibold tracking-tight">CollegeAI</span>
           </Link>
-          <SidebarToggleButton className="ml-auto h-8 w-8" />
+          <SidebarTrigger className="ml-auto h-8 w-8" />
         </div>
         <ScrollArea className="flex-1 overflow-auto py-2">
           <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center">
