@@ -1,50 +1,93 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
-import SalesDashboard from "./pages/SalesDashboard";
-import SalesPipeline from "./pages/SalesPipeline";
-import CallRecordings from "./pages/CallRecordings";
-import Campaigns from "./pages/Campaigns";
-import Contacts from "./pages/Contacts";
-import OutboundCalling from "./pages/OutboundCalling";
-import Calendar from "./pages/Calendar";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import EnrollmentAnalytics from "./pages/EnrollmentAnalytics";
-import Index from "./pages/Index";
-import CallAnalytics from "./pages/CallAnalytics";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { ThemeProvider } from "@/components/ui/theme-provider";
+import Index from "@/pages/Index";
+import Settings from "@/pages/Settings";
+import Campaigns from "@/pages/Campaigns";
+import Dashboard from "@/pages/Dashboard";
+import SalesDashboard from "@/pages/SalesDashboard";
+import CallRecordings from "@/pages/CallRecordings";
+import OutboundCalling from "@/pages/OutboundCalling";
+import NotFound from "@/pages/NotFound";
+import Calendar from "@/pages/Calendar";
+import Profile from "@/pages/Profile";
+import EnrollmentAnalytics from "@/pages/EnrollmentAnalytics";
+import Contacts from "@/pages/Contacts";
+import SalesPipeline from "@/pages/SalesPipeline";
+import CallAnalytics from "@/pages/CallAnalytics";
+import McubeDashboard from "@/pages/McubeDashboard";
 
-const queryClient = new QueryClient();
+import "./App.css";
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/sales-dashboard" element={<SalesDashboard />} />
-          <Route path="/sales-pipeline" element={<SalesPipeline />} />
-          <Route path="/call-recordings" element={<CallRecordings />} />
-          <Route path="/call-analytics" element={<CallAnalytics />} />
-          <Route path="/campaigns" element={<Campaigns />} />
-          <Route path="/contacts" element={<Contacts />} />
-          <Route path="/outbound-calling" element={<OutboundCalling />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/enrollment-analytics" element={<EnrollmentAnalytics />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Index />,
+  },
+  {
+    path: "/settings",
+    element: <Settings />,
+  },
+  {
+    path: "/campaigns",
+    element: <Campaigns />,
+  },
+  {
+    path: "/dashboard",
+    element: <Dashboard />,
+  },
+  {
+    path: "/sales-dashboard",
+    element: <SalesDashboard />,
+  },
+  {
+    path: "/call-recordings",
+    element: <CallRecordings />,
+  },
+  {
+    path: "/outbound-calling",
+    element: <OutboundCalling />,
+  },
+  {
+    path: "/calendar",
+    element: <Calendar />,
+  },
+  {
+    path: "/profile",
+    element: <Profile />,
+  },
+  {
+    path: "/enrollment-analytics",
+    element: <EnrollmentAnalytics />,
+  },
+  {
+    path: "/contacts",
+    element: <Contacts />,
+  },
+  {
+    path: "/sales-pipeline",
+    element: <SalesPipeline />,
+  },
+  {
+    path: "/call-analytics",
+    element: <CallAnalytics />,
+  },
+  {
+    path: "/mcube-dashboard",
+    element: <McubeDashboard />,
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  },
+]);
+
+function App() {
+  return (
+    <ThemeProvider defaultTheme="light" storageKey="lovable-theme">
+      <RouterProvider router={router} />
+    </ThemeProvider>
+  );
+}
 
 export default App;
