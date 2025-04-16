@@ -7,14 +7,15 @@ import {
   SearchIcon,
   RefreshCw,
   PhoneCall,
-  Phone
+  Phone,
+  Key
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { McubeCallLogsList } from "@/components/CallAnalysis/McubeCallLogsList";
 import { McubeCallDetails } from "@/components/CallAnalysis/McubeCallDetails";
 import { useMcubeCalls } from "@/hooks/useMcubeCalls";
-import { CallFilters } from "@/services/mcube";
+import { CallFilters, mcubeService } from "@/services/mcube";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -22,8 +23,10 @@ import { toast } from "sonner";
 const McubeDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showOutboundDialog, setShowOutboundDialog] = useState(false);
+  const [showApiTokenDialog, setShowApiTokenDialog] = useState(false);
   const [agentPhone, setAgentPhone] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [apiToken, setApiToken] = useState("");
   
   // Set up filters for the calls
   const [filters, setFilters] = useState<CallFilters>({
@@ -45,6 +48,9 @@ const McubeDashboard = () => {
     filters,
     autoFetch: true
   });
+
+  // Check if we have a valid token
+  const hasValidToken = !!mcubeService.getToken() && mcubeService.getToken() !== 'your-mcube-token';
 
   // Filter calls based on search term
   const filteredCalls = searchTerm 
@@ -78,6 +84,20 @@ const McubeDashboard = () => {
     }
   };
 
+  // Handle setting the API token
+  const handleSetApiToken = () => {
+    if (!apiToken.trim()) {
+      toast.error("Please enter a valid API token");
+      return;
+    }
+    
+    mcubeService.setToken(apiToken.trim());
+    setShowApiTokenDialog(false);
+    toast.success("MCUBE API token updated successfully");
+    // Refresh calls with the new token
+    fetchCalls();
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
@@ -97,9 +117,49 @@ const McubeDashboard = () => {
               />
             </div>
             
+            <Dialog open={showApiTokenDialog} onOpenChange={setShowApiTokenDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Key className="h-4 w-4 mr-2" />
+                  {hasValidToken ? "Update API Token" : "Set API Token"}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>MCUBE API Token</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="apiToken" className="text-right">
+                      API Token
+                    </Label>
+                    <Input
+                      id="apiToken"
+                      value={apiToken}
+                      onChange={(e) => setApiToken(e.target.value)}
+                      placeholder="Enter your MCUBE API token"
+                      className="col-span-3"
+                      type="password"
+                    />
+                  </div>
+                  <div className="col-span-full text-sm text-muted-foreground">
+                    This token is required to authenticate with the MCUBE API for making outbound calls.
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowApiTokenDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSetApiToken} disabled={!apiToken.trim()}>
+                    Save Token
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
             <Dialog open={showOutboundDialog} onOpenChange={setShowOutboundDialog}>
               <DialogTrigger asChild>
-                <Button>
+                <Button disabled={!hasValidToken}>
                   <Phone className="h-4 w-4 mr-2" />
                   Make Call
                 </Button>
@@ -146,6 +206,29 @@ const McubeDashboard = () => {
             </Dialog>
           </div>
         </div>
+
+        {!hasValidToken && (
+          <Card className="bg-amber-50 border-amber-200">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <Key className="h-8 w-8 text-amber-500" />
+                <div>
+                  <h3 className="font-medium text-amber-800">MCUBE API Token Required</h3>
+                  <p className="text-amber-700 text-sm mt-1">
+                    Please set your MCUBE API token to enable outbound calling and real-time data synchronization.
+                  </p>
+                </div>
+                <Button 
+                  className="ml-auto" 
+                  variant="outline" 
+                  onClick={() => setShowApiTokenDialog(true)}
+                >
+                  Set API Token
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-white shadow-sm">

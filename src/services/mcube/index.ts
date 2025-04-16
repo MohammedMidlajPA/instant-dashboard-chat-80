@@ -1,5 +1,6 @@
 
 import { McubeInboundCall, McubeOutboundCallRequest, McubeOutboundCallResponse, CallRecord, CallFilters } from './types';
+import { toast } from 'sonner';
 
 // Constants
 const MCUBE_API_BASE_URL = 'https://api.mcube.com/Restmcube-api';
@@ -48,8 +49,11 @@ export class McubeService {
 
   /**
    * Process an inbound call from webhook
+   * This method would be called by a backend API endpoint that processes incoming MCUBE webhooks
    */
   public processInboundCall(callData: McubeInboundCall): CallRecord {
+    console.log('Processing inbound call data:', callData);
+    
     // Convert McubeInboundCall to our standard CallRecord format
     const callRecord: CallRecord = {
       id: callData.callid,
@@ -81,7 +85,16 @@ export class McubeService {
   }
 
   /**
-   * Make an outbound call
+   * Make an outbound call using the MCUBE API
+   * Following the format from documentation:
+   * curl --location 'https://api.mcube.com/Restmcube-api/outbound-calls' \
+   * --header 'Content-Type: application/json' \
+   * --data '{
+   *     "HTTP_AUTHORIZATION":"Token",
+   *     "exenumber": "Executive Number",
+   *     "custnumber": "Customer Number",
+   *     "refurl": "https://api.mcube.com/Restmcube-api/outbound-calls"
+   * }'
    */
   public async makeOutboundCall(
     agentPhone: string, 
@@ -89,55 +102,128 @@ export class McubeService {
     refId?: string
   ): Promise<McubeOutboundCallResponse> {
     try {
-      // Prepare request payload
+      if (!this.token) {
+        throw new Error('MCUBE API token not set. Please set a valid token first.');
+      }
+      
+      if (!agentPhone || !customerPhone) {
+        throw new Error('Agent phone and customer phone are required.');
+      }
+      
+      console.log(`Initiating outbound call from ${agentPhone} to ${customerPhone}`);
+      
+      // Prepare request payload according to MCUBE API documentation
       const payload: McubeOutboundCallRequest = {
         HTTP_AUTHORIZATION: this.token,
         exenumber: agentPhone,
         custnumber: customerPhone,
-        refurl: `${MCUBE_API_BASE_URL}/callback`, // This should be your callback URL
+        refurl: `${MCUBE_API_BASE_URL}/outbound-calls`, // This should be your callback URL
         refid: refId
       };
 
-      // In production, this would make an actual API call
-      // For now, we'll simulate a response
-      console.log('Making outbound call with payload:', payload);
-      
-      // Simulate API call (in production, use actual fetch or axios call)
-      // const response = await fetch(`${MCUBE_API_BASE_URL}/outbound-calls`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(payload),
-      // });
-      // return await response.json();
-      
-      // For simulation, create a mock call record
-      const callId = `mock-${Date.now()}`;
-      const startTime = new Date().toISOString();
-      
-      const mockCallRecord: CallRecord = {
-        id: callId,
-        startTime,
-        direction: 'outbound',
-        status: 'INITIATED',
-        agentPhone,
-        customerPhone,
-        duration: 0,
-      };
-      
-      // Store the mock call
-      this.storeCall(mockCallRecord);
-      
-      // Notify listeners
-      this.notifyListeners();
-      
-      return {
-        success: true,
-        callId,
-        status: 'INITIATED',
-        message: 'Call initiated successfully'
-      };
+      // In production, make the actual API call
+      // For now, we'll use a conditional to determine if we're in development mode
+      if (process.env.NODE_ENV === 'production') {
+        try {
+          const response = await fetch(`${MCUBE_API_BASE_URL}/outbound-calls`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`MCUBE API error: ${response.status} - ${errorText}`);
+          }
+          
+          const data = await response.json();
+          console.log('MCUBE outbound call response:', data);
+          
+          // Create a call record from the response
+          if (data.success) {
+            const callId = data.callId || `mcube-${Date.now()}`;
+            const startTime = new Date().toISOString();
+            
+            const callRecord: CallRecord = {
+              id: callId,
+              startTime,
+              direction: 'outbound',
+              status: 'INITIATED',
+              agentPhone,
+              customerPhone,
+              duration: 0,
+            };
+            
+            // Store the call
+            this.storeCall(callRecord);
+            this.notifyListeners();
+            
+            return {
+              success: true,
+              callId,
+              status: 'INITIATED',
+              message: 'Call initiated successfully'
+            };
+          } else {
+            throw new Error(data.message || 'Failed to initiate call');
+          }
+        } catch (error) {
+          console.error('Error making MCUBE API call:', error);
+          throw error;
+        }
+      } else {
+        // Development mode - simulate successful call
+        console.log('DEV MODE: Simulating outbound call with payload:', payload);
+        
+        // Simulate API call with a mock response
+        const callId = `mock-${Date.now()}`;
+        const startTime = new Date().toISOString();
+        
+        // Create a mock call record
+        const mockCallRecord: CallRecord = {
+          id: callId,
+          startTime,
+          direction: 'outbound',
+          status: 'INITIATED',
+          agentPhone,
+          customerPhone,
+          duration: 0,
+        };
+        
+        // Store the mock call
+        this.storeCall(mockCallRecord);
+        
+        // Simulate a call in progress and then completion
+        setTimeout(() => {
+          const updatedCall: CallRecord = {
+            ...mockCallRecord,
+            status: 'ANSWER',
+            duration: 15, // 15 seconds
+            endTime: new Date(new Date(startTime).getTime() + 15000).toISOString(),
+            sentiment: Math.random() > 0.3 ? 'Positive' : 'Neutral',
+            disconnectedBy: Math.random() > 0.5 ? 'Agent' : 'Customer',
+          };
+          
+          this.storeCall(updatedCall);
+          this.notifyListeners();
+          
+          // Show toast notification
+          toast.success('Call completed successfully');
+          
+        }, 15000); // After 15 seconds
+        
+        // Notify listeners immediately with initial call data
+        this.notifyListeners();
+        
+        return {
+          success: true,
+          callId,
+          status: 'INITIATED',
+          message: 'Call initiated successfully (DEVELOPMENT MODE)'
+        };
+      }
     } catch (error) {
       console.error('Error making outbound call:', error);
       return {

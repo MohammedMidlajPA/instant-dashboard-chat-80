@@ -86,7 +86,8 @@ export function useMcubeCalls(options: UseMcubeCallsOptions = {}) {
       }
     } catch (err) {
       console.error('Error making call:', err);
-      toast.error('Failed to make call: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      const errorMessage = err instanceof Error ? err.message : 'Failed to make call: Unknown error';
+      toast.error(errorMessage);
       throw err;
     } finally {
       setIsLoading(false);
