@@ -61,8 +61,8 @@ export const McubeCallLogsList: React.FC<McubeCallLogsListProps> = ({
       {calls.map((call) => (
         <Card
           key={call.id}
-          className={`p-3 cursor-pointer hover:bg-accent transition-colors ${
-            selectedCallId === call.id ? "ring-2 ring-primary" : ""
+          className={`p-3 cursor-pointer hover:bg-slate-50 transition-colors ${
+            selectedCallId === call.id ? "ring-2 ring-blue-500 bg-blue-50" : ""
           }`}
           onClick={() => onSelectCall(call.id)}
         >
@@ -87,7 +87,7 @@ export const McubeCallLogsList: React.FC<McubeCallLogsListProps> = ({
           
           {call.companyName && (
             <div className="mt-1">
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs bg-slate-50">
                 {call.companyName}
               </Badge>
             </div>

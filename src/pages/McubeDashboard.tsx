@@ -8,12 +8,11 @@ import {
   RefreshCw,
   PhoneCall,
   Key,
-  Phone, 
-  PhoneIncoming, 
-  PhoneOutgoing,
   Clock,
   Users,
-  MessageSquareText
+  MessageSquareText,
+  PhoneIncoming, 
+  PhoneOutgoing,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -105,8 +104,8 @@ const McubeDashboard = () => {
       <div className="space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Call Dashboard</h1>
-            <p className="text-muted-foreground">Monitor and analyze student engagement conversations</p>
+            <h1 className="text-2xl font-bold text-slate-800">Call Dashboard</h1>
+            <p className="text-slate-500">Monitor and analyze student engagement conversations</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative w-full sm:w-64">
@@ -285,7 +284,7 @@ const McubeDashboard = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <TabsContent value="all" className="mt-0 lg:col-span-5">
-              <Card>
+              <Card className="shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-medium flex items-center justify-between">
                     <span>Recent Calls</span>
@@ -306,13 +305,13 @@ const McubeDashboard = () => {
             </TabsContent>
             
             <TabsContent value="inbound" className="mt-0 lg:col-span-5">
-              <Card>
+              <Card className="shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-medium flex items-center justify-between">
                     <span>Inbound Calls</span>
                     <Badge variant="outline">{filteredCalls.length} calls</Badge>
                   </CardTitle>
-                  <CardDescription>Calls received from customers</CardDescription>
+                  <CardDescription>Calls received from students and prospects</CardDescription>
                 </CardHeader>
                 <Separator className="mb-2" />
                 <CardContent>
@@ -327,13 +326,13 @@ const McubeDashboard = () => {
             </TabsContent>
             
             <TabsContent value="outbound" className="mt-0 lg:col-span-5">
-              <Card>
+              <Card className="shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-medium flex items-center justify-between">
                     <span>Outbound Calls</span>
                     <Badge variant="outline">{filteredCalls.length} calls</Badge>
                   </CardTitle>
-                  <CardDescription>Calls made to prospects and customers</CardDescription>
+                  <CardDescription>Calls made to prospects and students</CardDescription>
                 </CardHeader>
                 <Separator className="mb-2" />
                 <CardContent>

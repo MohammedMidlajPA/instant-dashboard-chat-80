@@ -1,13 +1,15 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sidebar, SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { mcubeService } from "@/services/mcube";
+import { useMediaQuery } from "@/hooks/use-mobile";
 
 import { 
   LayoutDashboard, 
@@ -19,26 +21,25 @@ import {
   FileBarChart,
   Users,
   PieChart,
-  PhoneCall,
   Phone,
-  GraduationCap
+  GraduationCap,
+  PhoneOutgoing,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Separator } from "./ui/separator";
 
 export function AppSidebar() {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [collapsed, setCollapsed] = useState(isMobile);
   const [agentPhone, setAgentPhone] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
       setCollapsed(mobile);
     };
 
@@ -72,28 +73,28 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <div className="flex h-full flex-col">
-        <div className="flex h-14 items-center border-b px-5 lg:h-[60px]">
+      <div className="flex h-full flex-col bg-slate-50">
+        <div className="flex h-14 items-center px-5 lg:h-[60px] bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
           <Link 
             to="/" 
-            className="flex items-center gap-2 font-medium transition-colors hover:text-foreground"
+            className="flex items-center gap-2 font-medium transition-colors"
           >
             <GraduationCap className="h-5 w-5" />
             <span className="text-lg font-semibold tracking-tight">CollegeAI</span>
           </Link>
-          <SidebarTrigger className="ml-auto h-8 w-8" />
+          <SidebarTrigger className="ml-auto h-8 w-8 text-white hover:bg-blue-700 hover:text-white" />
         </div>
         
-        <Card className="m-2 mb-0 border-none shadow-none">
-          <CardHeader className="px-3 py-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Quick Call
+        <Card className="m-3 border shadow-sm">
+          <CardHeader className="px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-700">
+              <PhoneOutgoing className="h-4 w-4" />
+              Quick Outbound Call
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-3 py-2 space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="agentPhone" className="text-xs font-medium">
+          <CardContent className="px-3 py-3 space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="agentPhone" className="text-xs font-medium text-gray-700">
                 Agent Phone
               </Label>
               <Input
@@ -105,8 +106,8 @@ export function AppSidebar() {
               />
             </div>
             
-            <div className="space-y-1">
-              <Label htmlFor="customerPhone" className="text-xs font-medium">
+            <div className="space-y-1.5">
+              <Label htmlFor="customerPhone" className="text-xs font-medium text-gray-700">
                 Customer Phone
               </Label>
               <Input
@@ -119,12 +120,22 @@ export function AppSidebar() {
             </div>
             
             <Button 
-              className="w-full" 
+              className="w-full bg-blue-600 hover:bg-blue-700" 
               size="sm" 
               disabled={isLoading || !agentPhone || !customerPhone}
               onClick={handleMakeCall}
             >
-              {isLoading ? "Initiating..." : "Start Call"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Initiating...
+                </>
+              ) : (
+                <>
+                  <Phone className="h-4 w-4 mr-2" />
+                  Start Call
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -235,12 +246,12 @@ export function AppSidebar() {
             </Link>
           </nav>
         </ScrollArea>
-        <div className="mt-auto border-t p-4">
+        <div className="mt-auto p-4 border-t bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="grid gap-1">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-blue-600 font-medium">
               College Voice AI Platform
             </div>
-            <div className="text-xs font-medium">v1.0.0</div>
+            <div className="text-xs text-gray-500">v1.0.0</div>
           </div>
         </div>
       </div>
