@@ -49,8 +49,8 @@ export const McubeCallLogsList: React.FC<McubeCallLogsListProps> = ({
 
   if (calls.length === 0) {
     return (
-      <div className="py-8 text-center text-gray-500">
-        <PhoneCall className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+      <div className="py-8 text-center text-muted-foreground">
+        <PhoneCall className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
         <p>No call records found</p>
       </div>
     );
@@ -61,17 +61,17 @@ export const McubeCallLogsList: React.FC<McubeCallLogsListProps> = ({
       {calls.map((call) => (
         <Card
           key={call.id}
-          className={`p-3 cursor-pointer hover:bg-slate-50 transition-colors ${
-            selectedCallId === call.id ? "ring-2 ring-blue-500 bg-blue-50" : ""
+          className={`p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
+            selectedCallId === call.id ? "ring-2 ring-primary bg-muted" : ""
           }`}
           onClick={() => onSelectCall(call.id)}
         >
           <div className="flex justify-between mb-2">
             <div className="flex items-center gap-2">
               {call.direction === "inbound" ? (
-                <PhoneIncoming className="h-3.5 w-3.5 text-blue-600" />
+                <PhoneIncoming className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               ) : (
-                <PhoneOutgoing className="h-3.5 w-3.5 text-green-600" />
+                <PhoneOutgoing className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
               )}
               <span className="font-medium truncate">
                 {call.contactName || call.customerPhone}
@@ -80,14 +80,14 @@ export const McubeCallLogsList: React.FC<McubeCallLogsListProps> = ({
             <SentimentBadge type={call.sentiment || "Neutral"} />
           </div>
           
-          <div className="flex justify-between text-xs text-gray-500">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>{new Date(call.startTime).toLocaleString()}</span>
             <span>{formatDuration(call.duration)}</span>
           </div>
           
           {call.companyName && (
             <div className="mt-1">
-              <Badge variant="outline" className="text-xs bg-slate-50">
+              <Badge variant="outline" className="text-xs bg-background/50">
                 {call.companyName}
               </Badge>
             </div>

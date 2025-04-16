@@ -10,21 +10,20 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { mcubeService } from "@/services/mcube";
 import { useMediaQuery } from "@/hooks/use-mobile";
+import { useTheme } from "@/components/ui/theme-provider";
 
 import { 
-  LayoutDashboard, 
+  Phone,
   Megaphone,
-  BarChart3,
   CalendarClock,
   UserCircle,
   Settings2,
-  FileBarChart,
   Users,
-  PieChart,
-  Phone,
-  GraduationCap,
   PhoneOutgoing,
-  Loader2
+  Loader2,
+  SunMoon,
+  Moon,
+  Sun
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
@@ -36,6 +35,7 @@ export function AppSidebar() {
   const [agentPhone, setAgentPhone] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     const handleResize = () => {
@@ -71,30 +71,42 @@ export function AppSidebar() {
     }
   };
 
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
   return (
     <Sidebar>
-      <div className="flex h-full flex-col bg-slate-50">
-        <div className="flex h-14 items-center px-5 lg:h-[60px] bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+      <div className="flex h-full flex-col bg-background border-r">
+        <div className="flex h-14 items-center px-5 lg:h-[60px] bg-primary text-primary-foreground">
           <Link 
             to="/" 
             className="flex items-center gap-2 font-medium transition-colors"
           >
-            <GraduationCap className="h-5 w-5" />
-            <span className="text-lg font-semibold tracking-tight">CollegeAI</span>
+            <Phone className="h-5 w-5" />
+            <span className="text-lg font-semibold tracking-tight">MCUBE Call Center</span>
           </Link>
-          <SidebarTrigger className="ml-auto h-8 w-8 text-white hover:bg-blue-700 hover:text-white" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleTheme} 
+            className="ml-auto text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+          >
+            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+          <SidebarTrigger className="ml-2 h-8 w-8 text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" />
         </div>
         
         <Card className="m-3 border shadow-sm">
-          <CardHeader className="px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-            <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-700">
+          <CardHeader className="px-3 py-2 bg-muted/30 border-b">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-primary">
               <PhoneOutgoing className="h-4 w-4" />
               Quick Outbound Call
             </CardTitle>
           </CardHeader>
           <CardContent className="px-3 py-3 space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="agentPhone" className="text-xs font-medium text-gray-700">
+              <Label htmlFor="agentPhone" className="text-xs font-medium">
                 Agent Phone
               </Label>
               <Input
@@ -107,7 +119,7 @@ export function AppSidebar() {
             </div>
             
             <div className="space-y-1.5">
-              <Label htmlFor="customerPhone" className="text-xs font-medium text-gray-700">
+              <Label htmlFor="customerPhone" className="text-xs font-medium">
                 Customer Phone
               </Label>
               <Input
@@ -120,7 +132,7 @@ export function AppSidebar() {
             </div>
             
             <Button 
-              className="w-full bg-blue-600 hover:bg-blue-700" 
+              className="w-full bg-primary hover:bg-primary/90" 
               size="sm" 
               disabled={isLoading || !agentPhone || !customerPhone}
               onClick={handleMakeCall}
@@ -144,16 +156,6 @@ export function AppSidebar() {
         
         <ScrollArea className="flex-1 overflow-auto py-2">
           <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center">
-            <Link to="/">
-              <Button
-                variant={isActive("/") ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <LayoutDashboard className="mr-2 h-4 w-4" />
-                <span>Dashboard</span>
-              </Button>
-            </Link>
             <Link to="/mcube-dashboard">
               <Button
                 variant={isActive("/mcube-dashboard") ? "secondary" : "ghost"}
@@ -174,16 +176,6 @@ export function AppSidebar() {
                 <span>Campaigns</span>
               </Button>
             </Link>
-            <Link to="/enrollment-analytics">
-              <Button
-                variant={isActive("/enrollment-analytics") ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <BarChart3 className="mr-2 h-4 w-4" />
-                <span>Enrollment</span>
-              </Button>
-            </Link>
             <Link to="/calendar">
               <Button
                 variant={isActive("/calendar") ? "secondary" : "ghost"}
@@ -202,26 +194,6 @@ export function AppSidebar() {
               >
                 <Users className="mr-2 h-4 w-4" />
                 <span>Contacts</span>
-              </Button>
-            </Link>
-            <Link to="/sales-dashboard">
-              <Button
-                variant={isActive("/sales-dashboard") ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <PieChart className="mr-2 h-4 w-4" />
-                <span>Admissions KPIs</span>
-              </Button>
-            </Link>
-            <Link to="/call-analytics">
-              <Button
-                variant={isActive("/call-analytics") ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <FileBarChart className="mr-2 h-4 w-4" />
-                <span>Call Analytics</span>
               </Button>
             </Link>
             <Link to="/profile">
@@ -246,12 +218,12 @@ export function AppSidebar() {
             </Link>
           </nav>
         </ScrollArea>
-        <div className="mt-auto p-4 border-t bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="mt-auto p-4 border-t bg-muted/30">
           <div className="grid gap-1">
-            <div className="text-xs text-blue-600 font-medium">
-              College Voice AI Platform
+            <div className="text-xs text-primary font-medium">
+              MCUBE Call Center
             </div>
-            <div className="text-xs text-gray-500">v1.0.0</div>
+            <div className="text-xs text-muted-foreground">v1.0.0</div>
           </div>
         </div>
       </div>
