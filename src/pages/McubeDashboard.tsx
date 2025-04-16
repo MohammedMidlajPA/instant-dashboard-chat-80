@@ -1,14 +1,19 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   SearchIcon,
   RefreshCw,
   PhoneCall,
-  Phone,
-  Key
+  Key,
+  Phone, 
+  PhoneIncoming, 
+  PhoneOutgoing,
+  Clock,
+  Users,
+  MessageSquareText
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -19,14 +24,14 @@ import { CallFilters, mcubeService } from "@/services/mcube";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 const McubeDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [showOutboundDialog, setShowOutboundDialog] = useState(false);
   const [showApiTokenDialog, setShowApiTokenDialog] = useState(false);
-  const [agentPhone, setAgentPhone] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
   const [apiToken, setApiToken] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
   
   // Set up filters for the calls
   const [filters, setFilters] = useState<CallFilters>({
@@ -39,7 +44,6 @@ const McubeDashboard = () => {
     stats,
     isLoading,
     fetchCalls,
-    makeCall,
     selectedCallId,
     setSelectedCallId,
     selectedCall,
@@ -51,6 +55,21 @@ const McubeDashboard = () => {
 
   // Check if we have a valid token
   const hasValidToken = !!mcubeService.getToken() && mcubeService.getToken() !== 'your-mcube-token';
+
+  // Update filters when tab changes
+  useEffect(() => {
+    let newFilters: CallFilters = { ...filters };
+    
+    if (activeTab === "inbound") {
+      newFilters.direction = "inbound";
+    } else if (activeTab === "outbound") {
+      newFilters.direction = "outbound";
+    } else {
+      delete newFilters.direction;
+    }
+    
+    setFilters(newFilters);
+  }, [activeTab]);
 
   // Filter calls based on search term
   const filteredCalls = searchTerm 
@@ -66,23 +85,6 @@ const McubeDashboard = () => {
         return searchableText.includes(searchTerm.toLowerCase());
       })
     : calls;
-    
-  // Handle initiating an outbound call
-  const handleMakeCall = async () => {
-    if (!agentPhone || !customerPhone) {
-      toast.error("Agent and customer phone numbers are required");
-      return;
-    }
-    
-    try {
-      await makeCall(agentPhone, customerPhone);
-      setShowOutboundDialog(false);
-      // Clear the form
-      setCustomerPhone("");
-    } catch (error) {
-      console.error("Failed to make call:", error);
-    }
-  };
 
   // Handle setting the API token
   const handleSetApiToken = () => {
@@ -101,13 +103,13 @@ const McubeDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold">MCUBE Call Dashboard</h1>
-            <p className="text-muted-foreground">Monitor and analyze voice agent conversations</p>
+            <h1 className="text-2xl font-bold">Call Dashboard</h1>
+            <p className="text-muted-foreground">Monitor and analyze student engagement conversations</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="relative w-64">
+            <div className="relative w-full sm:w-64">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input 
                 placeholder="Search calls..." 
@@ -157,53 +159,15 @@ const McubeDashboard = () => {
               </DialogContent>
             </Dialog>
             
-            <Dialog open={showOutboundDialog} onOpenChange={setShowOutboundDialog}>
-              <DialogTrigger asChild>
-                <Button disabled={!hasValidToken}>
-                  <Phone className="h-4 w-4 mr-2" />
-                  Make Call
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Initiate Outbound Call</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="agentPhone" className="text-right">
-                      Agent Phone
-                    </Label>
-                    <Input
-                      id="agentPhone"
-                      value={agentPhone}
-                      onChange={(e) => setAgentPhone(e.target.value)}
-                      placeholder="8767316316"
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="customerPhone" className="text-right">
-                      Customer Phone
-                    </Label>
-                    <Input
-                      id="customerPhone"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="5551234567"
-                      className="col-span-3"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowOutboundDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleMakeCall} disabled={!agentPhone || !customerPhone}>
-                    Start Call
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={fetchCalls} 
+              disabled={isLoading}
+              title="Refresh Calls"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
         </div>
 
@@ -230,7 +194,7 @@ const McubeDashboard = () => {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-white shadow-sm">
             <CardContent className="pt-6">
               <div className="flex items-center">
@@ -252,7 +216,7 @@ const McubeDashboard = () => {
             <CardContent className="pt-6">
               <div className="flex items-center">
                 <div className="mr-4 p-3 bg-green-50 rounded-full">
-                  <PhoneCall className="h-5 w-5 text-green-600" />
+                  <MessageSquareText className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Positive Calls</p>
@@ -273,7 +237,7 @@ const McubeDashboard = () => {
             <CardContent className="pt-6">
               <div className="flex items-center">
                 <div className="mr-4 p-3 bg-amber-50 rounded-full">
-                  <PhoneCall className="h-5 w-5 text-amber-600" />
+                  <Clock className="h-5 w-5 text-amber-600" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Total Talk Time</p>
@@ -291,7 +255,7 @@ const McubeDashboard = () => {
             <CardContent className="pt-6">
               <div className="flex items-center">
                 <div className="mr-4 p-3 bg-purple-50 rounded-full">
-                  <PhoneCall className="h-5 w-5 text-purple-600" />
+                  <Users className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Unique Contacts</p>
@@ -304,71 +268,95 @@ const McubeDashboard = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          {/* Call List - Takes up more space on larger screens */}
-          <div className="md:col-span-5">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-medium">Recent Calls</CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={fetchCalls} 
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                  <span className="ml-2">Refresh</span>
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4 flex flex-wrap gap-2">
-                  <Badge 
-                    variant={!filters.direction ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => setFilters({...filters, direction: undefined})}
-                  >
-                    All
-                  </Badge>
-                  <Badge 
-                    variant={filters.direction === "inbound" ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => setFilters({...filters, direction: "inbound"})}
-                  >
-                    Inbound
-                  </Badge>
-                  <Badge 
-                    variant={filters.direction === "outbound" ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => setFilters({...filters, direction: "outbound"})}
-                  >
-                    Outbound
-                  </Badge>
-                </div>
-              
-                <McubeCallLogsList 
-                  calls={filteredCalls} 
-                  isLoading={isLoading}
-                  onSelectCall={setSelectedCallId}
-                  selectedCallId={selectedCallId || undefined}
-                />
-              </CardContent>
-            </Card>
+        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex items-center justify-between">
+            <TabsList className="mb-4">
+              <TabsTrigger value="all">All Calls</TabsTrigger>
+              <TabsTrigger value="inbound" className="flex items-center gap-1">
+                <PhoneIncoming className="h-3.5 w-3.5" />
+                Inbound
+              </TabsTrigger>
+              <TabsTrigger value="outbound" className="flex items-center gap-1">
+                <PhoneOutgoing className="h-3.5 w-3.5" />
+                Outbound
+              </TabsTrigger>
+            </TabsList>
           </div>
           
-          {/* Call Details - Takes up less space */}
-          <div className="md:col-span-7">
-            <McubeCallDetails 
-              callId={selectedCallId || ""} 
-              call={selectedCall}
-              isLoading={isLoading}
-              error={error}
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <TabsContent value="all" className="mt-0 lg:col-span-5">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-medium flex items-center justify-between">
+                    <span>Recent Calls</span>
+                    <Badge variant="outline">{filteredCalls.length} calls</Badge>
+                  </CardTitle>
+                  <CardDescription>Browse and search through all call recordings</CardDescription>
+                </CardHeader>
+                <Separator className="mb-2" />
+                <CardContent>
+                  <McubeCallLogsList 
+                    calls={filteredCalls} 
+                    isLoading={isLoading}
+                    onSelectCall={setSelectedCallId}
+                    selectedCallId={selectedCallId || undefined}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="inbound" className="mt-0 lg:col-span-5">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-medium flex items-center justify-between">
+                    <span>Inbound Calls</span>
+                    <Badge variant="outline">{filteredCalls.length} calls</Badge>
+                  </CardTitle>
+                  <CardDescription>Calls received from customers</CardDescription>
+                </CardHeader>
+                <Separator className="mb-2" />
+                <CardContent>
+                  <McubeCallLogsList 
+                    calls={filteredCalls} 
+                    isLoading={isLoading}
+                    onSelectCall={setSelectedCallId}
+                    selectedCallId={selectedCallId || undefined}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="outbound" className="mt-0 lg:col-span-5">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-medium flex items-center justify-between">
+                    <span>Outbound Calls</span>
+                    <Badge variant="outline">{filteredCalls.length} calls</Badge>
+                  </CardTitle>
+                  <CardDescription>Calls made to prospects and customers</CardDescription>
+                </CardHeader>
+                <Separator className="mb-2" />
+                <CardContent>
+                  <McubeCallLogsList 
+                    calls={filteredCalls} 
+                    isLoading={isLoading}
+                    onSelectCall={setSelectedCallId}
+                    selectedCallId={selectedCallId || undefined}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <div className="lg:col-span-7">
+              <McubeCallDetails 
+                callId={selectedCallId || ""} 
+                call={selectedCall}
+                isLoading={isLoading}
+                error={error}
+              />
+            </div>
           </div>
-        </div>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

@@ -1,9 +1,13 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sidebar, SidebarTrigger } from "@/components/ui/sidebar";
-import { useMediaQuery } from "@/hooks/use-mobile";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { mcubeService } from "@/services/mcube";
 
 import { 
   LayoutDashboard, 
@@ -19,16 +23,52 @@ import {
   Phone,
   GraduationCap
 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Separator } from "./ui/separator";
 
 export function AppSidebar() {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
-  const isMobile = useMediaQuery("(max-width: 768px)");
-  const [collapsed, setCollapsed] = React.useState(isMobile);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [collapsed, setCollapsed] = useState(isMobile);
+  const [agentPhone, setAgentPhone] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   React.useEffect(() => {
-    setCollapsed(isMobile);
-  }, [isMobile]);
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      setCollapsed(mobile);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const handleMakeCall = async () => {
+    if (!agentPhone || !customerPhone) {
+      toast.error("Agent and customer phone numbers are required");
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const result = await mcubeService.makeOutboundCall(agentPhone, customerPhone);
+      
+      if (result.success) {
+        toast.success("Call initiated successfully");
+        setCustomerPhone(""); // Reset only customer phone
+      } else {
+        toast.error(result.message || "Failed to initiate call");
+      }
+    } catch (error) {
+      console.error("Failed to make call:", error);
+      toast.error("An error occurred while trying to initiate the call");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Sidebar>
@@ -43,6 +83,54 @@ export function AppSidebar() {
           </Link>
           <SidebarTrigger className="ml-auto h-8 w-8" />
         </div>
+        
+        <Card className="m-2 mb-0 border-none shadow-none">
+          <CardHeader className="px-3 py-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              Quick Call
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 py-2 space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="agentPhone" className="text-xs font-medium">
+                Agent Phone
+              </Label>
+              <Input
+                id="agentPhone"
+                value={agentPhone}
+                onChange={(e) => setAgentPhone(e.target.value)}
+                placeholder="8767316316"
+                className="h-8 text-sm"
+              />
+            </div>
+            
+            <div className="space-y-1">
+              <Label htmlFor="customerPhone" className="text-xs font-medium">
+                Customer Phone
+              </Label>
+              <Input
+                id="customerPhone"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="5551234567"
+                className="h-8 text-sm"
+              />
+            </div>
+            
+            <Button 
+              className="w-full" 
+              size="sm" 
+              disabled={isLoading || !agentPhone || !customerPhone}
+              onClick={handleMakeCall}
+            >
+              {isLoading ? "Initiating..." : "Start Call"}
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <Separator className="my-2" />
+        
         <ScrollArea className="flex-1 overflow-auto py-2">
           <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center">
             <Link to="/">
@@ -55,26 +143,6 @@ export function AppSidebar() {
                 <span>Dashboard</span>
               </Button>
             </Link>
-            <Link to="/call-recordings">
-              <Button
-                variant={isActive("/call-recordings") ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <PhoneCall className="mr-2 h-4 w-4" />
-                <span>Call Recordings</span>
-              </Button>
-            </Link>
-            <Link to="/outbound-calling">
-              <Button
-                variant={isActive("/outbound-calling") ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                size="sm"
-              >
-                <Phone className="mr-2 h-4 w-4" />
-                <span>Voice Agent</span>
-              </Button>
-            </Link>
             <Link to="/mcube-dashboard">
               <Button
                 variant={isActive("/mcube-dashboard") ? "secondary" : "ghost"}
@@ -82,7 +150,7 @@ export function AppSidebar() {
                 size="sm"
               >
                 <Phone className="mr-2 h-4 w-4" />
-                <span>MCUBE Dashboard</span>
+                <span>Call Dashboard</span>
               </Button>
             </Link>
             <Link to="/campaigns">
