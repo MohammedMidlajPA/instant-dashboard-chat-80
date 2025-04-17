@@ -1,12 +1,28 @@
 
 import { useState } from 'react';
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineChart, BarChart, PieChart } from "@/components/ui/custom-charts";
-import { Phone, UserCheck, Clock, CalendarDays, TrendingUp, Mic, Users } from 'lucide-react';
+import { 
+  Phone, 
+  UserCheck, 
+  Clock, 
+  CalendarDays, 
+  TrendingUp, 
+  Mic, 
+  Users, 
+  ChevronDown,
+  Download,
+  FileText,
+  Filter,
+  Share2
+} from 'lucide-react';
 import { useMcubeCalls } from '@/hooks/useMcubeCalls';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AnalyticsCard } from '@/components/AnalyticsCard';
 
 const CallAnalytics = () => {
   const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month' | 'year'>('week');
@@ -90,52 +106,73 @@ const CallAnalytics = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex justify-between items-center">
+      <div className="space-y-6 animate-fade-in pb-10">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold">Call Analytics</h1>
             <p className="text-muted-foreground">Analyze your call data and performance metrics</p>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap gap-2">
             <Tabs 
               value={timeRange} 
               onValueChange={(v) => setTimeRange(v as any)} 
-              className="w-[400px]"
+              className="w-full sm:w-auto"
             >
-              <TabsList className="grid grid-cols-4">
+              <TabsList className="grid grid-cols-4 w-full">
                 <TabsTrigger value="day">Day</TabsTrigger>
                 <TabsTrigger value="week">Week</TabsTrigger>
                 <TabsTrigger value="month">Month</TabsTrigger>
                 <TabsTrigger value="year">Year</TabsTrigger>
               </TabsList>
             </Tabs>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>All Calls</DropdownMenuItem>
+                <DropdownMenuItem>Inbound Only</DropdownMenuItem>
+                <DropdownMenuItem>Outbound Only</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatsCard 
-            title="Total Calls" 
-            value={stats.totalCalls.toString()} 
+          <AnalyticsCard
+            title="Total Calls"
+            value={stats.totalCalls.toString()}
             description="All time"
             icon={<Phone className="h-4 w-4" />}
+            trend={{ value: 12, isPositive: true }}
           />
-          <StatsCard 
-            title="Avg. Call Duration" 
+          <AnalyticsCard
+            title="Avg. Call Duration"
             value={formatTime(stats.avgCallDuration)}
-            description="Per call" 
+            description="Per call"
             icon={<Clock className="h-4 w-4" />}
+            trend={{ value: 5, isPositive: true }}
           />
-          <StatsCard 
-            title="Active Agents" 
+          <AnalyticsCard
+            title="Active Agents"
             value={Object.keys(calls.reduce((acc, call) => {
               if (call.agentPhone) acc[call.agentPhone] = true;
               return acc;
             }, {} as Record<string, boolean>)).length.toString()}
-            description="Unique agents" 
+            description="Unique agents"
             icon={<UserCheck className="h-4 w-4" />}
           />
-          <StatsCard 
-            title="Recent Calls" 
+          <AnalyticsCard
+            title="Recent Calls"
             value={calls.filter(c => {
               const callDate = new Date(c.startTime);
               const today = new Date();
@@ -143,16 +180,36 @@ const CallAnalytics = () => {
                      callDate.getMonth() === today.getMonth() &&
                      callDate.getFullYear() === today.getFullYear();
             }).length.toString()}
-            description="Today" 
+            description="Today"
             icon={<CalendarDays className="h-4 w-4" />}
+            trend={{ value: 8, isPositive: true }}
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Call Volume Trend</CardTitle>
-              <CardDescription>Total calls by day</CardDescription>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle>Call Volume Trend</CardTitle>
+                <CardDescription>Total calls by day</CardDescription>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share Report
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -164,18 +221,40 @@ const CallAnalytics = () => {
                   data={chartData.callVolumeData}
                   categories={["Inbound", "Outbound", "Total"]}
                   index="name"
-                  colors={["blue", "green", "gray"]}
+                  colors={["#3b82f6", "#10b981", "#6b7280"]}
                   valueFormatter={(value) => value.toString()}
                   className="h-[300px]"
                 />
               )}
             </CardContent>
+            <CardFooter className="border-t pt-4 text-xs text-muted-foreground">
+              Updated {format(new Date(), 'MMM d, yyyy h:mm a')}
+            </CardFooter>
           </Card>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Call Outcomes</CardTitle>
-              <CardDescription>Distribution of call outcomes</CardDescription>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle>Call Outcomes</CardTitle>
+                <CardDescription>Distribution of call outcomes</CardDescription>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Details
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -191,20 +270,28 @@ const CallAnalytics = () => {
                   ]}
                   index="name"
                   category="value"
-                  colors={["green", "red", "amber"]}
+                  colors={["#10b981", "#ef4444", "#f59e0b"]}
                   valueFormatter={(value) => value.toString()}
                   className="h-[300px]"
                 />
               )}
             </CardContent>
+            <CardFooter className="border-t pt-4 text-xs text-muted-foreground">
+              Based on {stats.totalCalls} total calls
+            </CardFooter>
           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Agent Performance</CardTitle>
-              <CardDescription>Call handling metrics by agent</CardDescription>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle>Agent Performance</CardTitle>
+                <CardDescription>Call handling metrics by agent</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm">
+                <ChevronDown className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -223,18 +310,28 @@ const CallAnalytics = () => {
                   }))}
                   index="name"
                   categories={["count"]}
-                  colors={["purple"]}
+                  colors={["#8b5cf6"]}
                   valueFormatter={(value) => value.toString()}
                   className="h-[250px]"
                 />
               )}
             </CardContent>
+            <CardFooter className="border-t pt-4">
+              <Button variant="link" size="sm" className="text-xs">
+                View Detailed Agent Reports
+              </Button>
+            </CardFooter>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Call Duration</CardTitle>
-              <CardDescription>Average duration by call direction</CardDescription>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle>Call Duration</CardTitle>
+                <CardDescription>Average duration by call direction</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm">
+                <ChevronDown className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -255,18 +352,26 @@ const CallAnalytics = () => {
                   ]}
                   index="direction"
                   categories={["duration"]}
-                  colors={["blue"]}
+                  colors={["#3b82f6"]}
                   valueFormatter={(value) => `${value} min`}
                   className="h-[250px]"
                 />
               )}
             </CardContent>
+            <CardFooter className="border-t pt-4 text-xs text-muted-foreground">
+              Total talk time: {formatTime(stats.totalCallDuration)}
+            </CardFooter>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Call Distribution</CardTitle>
-              <CardDescription>Calls by group</CardDescription>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle>Call Distribution</CardTitle>
+                <CardDescription>Calls by group</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm">
+                <ChevronDown className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -280,45 +385,45 @@ const CallAnalytics = () => {
                   }))}
                   index="group"
                   category="count"
-                  colors={["blue", "green", "purple", "amber"]}
+                  colors={["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b"]}
                   valueFormatter={(value) => value.toString()}
                   className="h-[250px]"
                 />
               )}
             </CardContent>
+            <CardFooter className="border-t pt-4">
+              <Button variant="link" size="sm" className="text-xs">
+                View Group Details
+              </Button>
+            </CardFooter>
           </Card>
         </div>
+        
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle>Call Time Distribution</CardTitle>
+            <CardDescription>Number of calls by hour of day</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <BarChart
+              data={Array.from({ length: 24 }, (_, i) => ({
+                hour: `${i}:00`,
+                calls: Math.floor(Math.random() * 20) + 1 // Random data for demonstration
+              }))}
+              index="hour"
+              categories={["calls"]}
+              colors={["#3b82f6"]}
+              valueFormatter={(value) => value.toString()}
+            />
+          </CardContent>
+          <CardFooter className="border-t pt-4">
+            <p className="text-xs text-muted-foreground">
+              Peak call volume occurs between 9:00 AM and 11:00 AM
+            </p>
+          </CardFooter>
+        </Card>
       </div>
     </DashboardLayout>
-  );
-};
-
-// Stats card component
-interface StatsCardProps {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ReactNode;
-}
-
-const StatsCard = ({ title, value, description, icon }: StatsCardProps) => {
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold mt-1">{value}</p>
-            <p className="text-xs text-muted-foreground mt-1">{description}</p>
-          </div>
-          <div className="bg-primary/10 p-2 rounded-full">
-            <div className="text-primary">
-              {icon}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 
