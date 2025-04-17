@@ -1,118 +1,110 @@
 
-import React from "react";
-import { CallRecord } from "@/services/mcube";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { SentimentBadge } from "@/components/CallRecordings/SentimentBadge";
-import { PhoneCall, PhoneOutgoing, PhoneIncoming } from "lucide-react";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { mcubeService, McubeCallData } from "@/services/mcubeService";
+import { formatDistance } from "date-fns";
+import { Phone, PhoneOutgoing, Clock, Calendar, User } from "lucide-react";
 
-interface McubeCallLogsListProps {
-  calls: CallRecord[];
-  isLoading: boolean;
-  onSelectCall: (callId: string) => void;
-  selectedCallId?: string;
-}
+export function McubeCallLogsList() {
+  const [calls, setCalls] = useState<McubeCallData[]>([]);
+  const [loading, setLoading] = useState(false);
 
-export const McubeCallLogsList: React.FC<McubeCallLogsListProps> = ({
-  calls,
-  isLoading,
-  onSelectCall,
-  selectedCallId
-}) => {
-  const formatDuration = (seconds?: number): string => {
-    if (!seconds) return "00:00";
-    
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  const fetchCallLogs = async () => {
+    setLoading(true);
+    try {
+      const callLogs = await mcubeService.getCallLogs(10);
+      setCalls(callLogs);
+    } catch (error) {
+      console.error("Error fetching call logs:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {[...Array(5)].map((_, i) => (
-          <Card key={i} className="p-3 bg-background/50 dark:bg-sidebar-accent/30">
-            <div className="flex justify-between mb-2">
-              <Skeleton className="h-4 w-1/3" />
-              <Skeleton className="h-4 w-20" />
-            </div>
-            <div className="flex justify-between">
-              <Skeleton className="h-3 w-1/4" />
-              <Skeleton className="h-3 w-16" />
-            </div>
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  // Fetch call logs on first render
+  useState(() => {
+    fetchCallLogs();
+  });
 
-  if (calls.length === 0) {
-    return (
-      <div className="py-8 text-center text-muted-foreground">
-        <PhoneCall className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-        <p>No call records found</p>
-      </div>
-    );
-  }
+  const formatDuration = (seconds?: number): string => {
+    if (!seconds) return "00:00";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const formatPhoneNumber = (phone?: string): string => {
+    if (!phone) return "Unknown";
+    // Simple formatting for demo purposes
+    return phone;
+  };
 
   return (
-    <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-      {calls.map((call) => (
-        <Card
-          key={call.id}
-          className={`p-3 cursor-pointer transition-all duration-200 hover:shadow-md dark:hover:bg-sidebar-accent/40 ${
-            selectedCallId === call.id 
-              ? "ring-2 ring-primary dark:bg-sidebar-accent/50 shadow-md" 
-              : "dark:bg-sidebar-accent/20"
-          }`}
-          onClick={() => onSelectCall(call.id)}
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium">Recent Calls</h3>
+        <button 
+          onClick={fetchCallLogs}
+          className="text-sm text-primary underline cursor-pointer"
+          disabled={loading}
         >
-          <div className="flex justify-between mb-2">
-            <div className="flex items-center gap-2">
-              {call.direction === "inbound" ? (
-                <PhoneIncoming className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-              ) : (
-                <PhoneOutgoing className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-              )}
-              <span className="font-medium truncate">
-                {call.contactName || call.customerPhone}
-              </span>
-            </div>
-            <SentimentBadge type={call.sentiment || "Neutral"} />
-          </div>
-          
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{new Date(call.startTime).toLocaleString()}</span>
-            <span>{formatDuration(call.duration)}</span>
-          </div>
-          
-          {call.companyName && (
-            <div className="mt-1">
-              <Badge variant="outline" className="text-xs bg-background/50 dark:bg-sidebar/50">
-                {call.companyName}
-              </Badge>
-            </div>
-          )}
-          
-          {call.keywords && call.keywords.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {call.keywords.slice(0, 3).map((keyword, idx) => (
-                <Badge key={idx} variant="secondary" className="text-xs">
-                  {keyword}
-                </Badge>
-              ))}
-              {call.keywords.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{call.keywords.length - 3}
-                </Badge>
-              )}
-            </div>
-          )}
-        </Card>
-      ))}
+          {loading ? "Loading..." : "Refresh"}
+        </button>
+      </div>
+      
+      {loading ? (
+        <div className="flex justify-center p-4">
+          <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
+        </div>
+      ) : calls.length === 0 ? (
+        <p className="text-center py-4 text-muted-foreground">No call logs available</p>
+      ) : (
+        <div className="space-y-3">
+          {calls.map((call) => (
+            <Card key={call.callId} className="overflow-hidden hover:shadow-md transition-shadow duration-200">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center">
+                    <div className="mr-3 bg-primary/10 p-2 rounded-full">
+                      {call.direction === 'inbound' ? (
+                        <Phone className="h-5 w-5 text-primary" />
+                      ) : (
+                        <PhoneOutgoing className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium">{formatPhoneNumber(call.customerPhone)}</p>
+                      <div className="flex text-xs text-muted-foreground gap-4 mt-1">
+                        <span className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatDuration(call.duration)}
+                        </span>
+                        <span className="flex items-center">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {formatDistance(new Date(call.startTime), new Date(), { addSuffix: true })}
+                        </span>
+                        <span className="flex items-center">
+                          <User className="h-3 w-3 mr-1" />
+                          {call.agentName || "Unknown"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs">
+                    <span className={`px-2 py-1 rounded-full ${
+                      call.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                      call.status === 'missed' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                      'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>
+                      {call.status.charAt(0).toUpperCase() + call.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
-};
-
-export default McubeCallLogsList;
+}

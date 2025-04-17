@@ -10,6 +10,7 @@ import Calendar from "@/pages/Calendar";
 import Profile from "@/pages/Profile";
 import Contacts from "@/pages/Contacts";
 import McubeDashboard from "@/pages/McubeDashboard";
+import CallAnalytics from "@/pages/CallAnalytics";
 
 import "./App.css";
 
@@ -49,6 +50,10 @@ const router = createBrowserRouter([
   {
     path: "/mcube-dashboard",
     element: <McubeDashboard />,
+  },
+  {
+    path: "/call-analytics",
+    element: <CallAnalytics />,
   },
   {
     path: "*",

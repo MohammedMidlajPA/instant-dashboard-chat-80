@@ -1,16 +1,26 @@
 
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { DashboardLayout } from "@/components/DashboardLayout";
 
 const CallAnalytics: React.FC = () => {
-  const navigate = useNavigate();
+  return (
+    <DashboardLayout>
+      <div className="container p-6 space-y-6 animate-fade-in">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Call Analytics</h1>
+            <p className="text-muted-foreground">Analyze your call data and performance</p>
+          </div>
+        </div>
 
-  useEffect(() => {
-    // Redirect to MCUBE dashboard since this page is no longer used
-    navigate('/mcube-dashboard');
-  }, [navigate]);
-
-  return null;
+        <div className="mt-8 text-center">
+          <p className="text-muted-foreground">
+            The Call Analytics feature is being updated. Please check back later.
+          </p>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
 };
 
 export default CallAnalytics;

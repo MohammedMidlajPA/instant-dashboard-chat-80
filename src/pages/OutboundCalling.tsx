@@ -1,183 +1,116 @@
 
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { PhoneOutgoing, RefreshCw, Phone } from "lucide-react";
+import { PhoneCall, Check, X } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { mcubeService } from "@/services/mcube";
-
-const formSchema = z.object({
-  agentPhone: z.string().min(10, {
-    message: "Agent phone must be at least 10 digits.",
-  }),
-  customerPhone: z.string().min(10, {
-    message: "Customer phone must be at least 10 digits.",
-  }),
-});
+import { mcubeService } from "@/services/mcubeService";
 
 const OutboundCalling = () => {
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [agentNumber, setAgentNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      agentPhone: "",
-      customerPhone: "",
-    },
-  });
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleCall = async () => {
+    if (!phoneNumber) {
+      toast.error("Please enter a phone number to call");
+      return;
+    }
+    
+    if (!agentNumber) {
+      toast.error("Please enter your agent number");
+      return;
+    }
+    
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      const result = await mcubeService.makeOutboundCall(values.agentPhone, values.customerPhone);
+      await mcubeService.initiateOutboundCall(agentNumber, phoneNumber);
+      toast.success(`Call initiated to ${phoneNumber}`);
       
-      if (result.success) {
-        toast.success("Call initiated successfully");
-        form.reset({ agentPhone: values.agentPhone, customerPhone: "" });
-      } else {
-        toast.error(result.message || "Failed to initiate call");
-      }
+      // Reset form after successful call
+      setPhoneNumber("");
     } catch (error) {
-      console.error("Failed to make call:", error);
-      toast.error("An error occurred while trying to initiate the call");
+      console.error("Error initiating call:", error);
+      toast.error("Failed to initiate call");
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto animate-fade-in space-y-8">
+      <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold mb-2">Outbound Calling</h1>
-          <p className="text-muted-foreground">Initiate calls to customers and manage outgoing communications</p>
+          <h1 className="text-2xl font-bold">Outbound Calling</h1>
+          <p className="text-muted-foreground">Make outbound calls to your contacts</p>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="shadowed-card">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="md:col-span-1">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PhoneOutgoing className="h-5 w-5 text-primary" />
-                Make Outbound Call
+              <CardTitle className="flex items-center">
+                <PhoneCall className="h-5 w-5 mr-2 text-primary" />
+                New Outbound Call
               </CardTitle>
               <CardDescription>
-                Start a new outbound call by entering agent and customer phone numbers
+                Enter the number you want to call
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="agentPhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Agent Phone</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Enter agent phone number" 
-                            {...field} 
-                            className="bg-background"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          The phone number of the agent making the call
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="agentNumber">Your Phone Number</Label>
+                  <Input
+                    id="agentNumber"
+                    placeholder="Enter your phone number"
+                    value={agentNumber}
+                    onChange={(e) => setAgentNumber(e.target.value)}
                   />
-                  
-                  <FormField
-                    control={form.control}
-                    name="customerPhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer Phone</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Enter customer phone number" 
-                            {...field} 
-                            className="bg-background"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          The phone number of the customer you want to call
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  <p className="text-xs text-muted-foreground">
+                    This is the number that will make the call
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Customer Phone Number</Label>
+                  <Input
+                    id="phoneNumber"
+                    placeholder="Enter phone number to call"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
                   />
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Initiating Call...
-                      </>
-                    ) : (
-                      <>
-                        <Phone className="mr-2 h-4 w-4" />
-                        Start Call
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          <Card className="shadowed-card">
-            <CardHeader>
-              <CardTitle>About Outbound Calling</CardTitle>
-              <CardDescription>
-                Learn how MCUBE's outbound calling system works
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium mb-1">How It Works</h3>
-                <p className="text-sm text-muted-foreground">
-                  The outbound API allows your system to initiate calls. When an agent triggers
-                  an outbound call, your system sends a request to MCUBE with the required parameters.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium mb-1">Required Parameters</h3>
-                <ul className="text-sm text-muted-foreground space-y-2">
-                  <li><strong>exenumber:</strong> The agent's phone number making the call</li>
-                  <li><strong>custnumber:</strong> The customer's phone number to be dialed</li>
-                  <li><strong>refurl:</strong> A callback URL for receiving call responses/updates</li>
-                </ul>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium mb-1">Process Flow</h3>
-                <ol className="text-sm text-muted-foreground list-decimal pl-4 space-y-1">
-                  <li>Agent enters the phone numbers</li>
-                  <li>System sends a request to MCUBE API</li>
-                  <li>MCUBE initiates the call to both parties</li>
-                  <li>Call events are tracked in real-time</li>
-                </ol>
+                </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full">
-                View Documentation
+            <CardFooter className="flex justify-between border-t p-4">
+              <Button variant="outline" onClick={() => setPhoneNumber("")}>
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button onClick={handleCall} disabled={isLoading}>
+                {isLoading ? (
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                ) : (
+                  <Check className="h-4 w-4 mr-2" />
+                )}
+                Initiate Call
               </Button>
             </CardFooter>
+          </Card>
+          
+          <Card className="md:col-span-1">
+            <CardHeader>
+              <CardTitle>Recent Outbound Calls</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="py-6 text-center">
+                <p className="text-muted-foreground">No recent outbound calls</p>
+              </div>
+            </CardContent>
           </Card>
         </div>
       </div>
