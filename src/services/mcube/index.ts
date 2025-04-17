@@ -519,7 +519,7 @@ class McubeService {
             status: 'pending',
           }
         ],
-        script: 'Hello, this is [Agent Name] from MCUBE. We're reaching out about our spring promotion...',
+        script: "Hello, this is [Agent Name] from MCUBE. We're reaching out about our spring promotion...",
         createdAt: '2025-04-10T10:00:00Z',
         updatedAt: '2025-04-10T10:00:00Z',
       }
