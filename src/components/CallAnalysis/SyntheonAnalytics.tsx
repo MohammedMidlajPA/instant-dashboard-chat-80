@@ -182,33 +182,36 @@ const SyntheonAnalytics: React.FC<SyntheonAnalyticsProps> = ({ call }) => {
                         <span>Positive Tone</span>
                         <span>{analysis.sentimentBreakdown?.positive || 0}%</span>
                       </div>
-                      <Progress 
-                        value={analysis.sentimentBreakdown?.positive || 0} 
-                        className="h-2 bg-slate-100"
-                        indicatorClassName="bg-green-500"
-                      />
+                      <div className="relative w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className="absolute top-0 left-0 h-full bg-green-500 rounded-full" 
+                          style={{ width: `${analysis.sentimentBreakdown?.positive || 0}%` }}
+                        ></div>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Neutral Tone</span>
                         <span>{analysis.sentimentBreakdown?.neutral || 0}%</span>
                       </div>
-                      <Progress 
-                        value={analysis.sentimentBreakdown?.neutral || 0} 
-                        className="h-2 bg-slate-100"
-                        indicatorClassName="bg-slate-400"
-                      />
+                      <div className="relative w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className="absolute top-0 left-0 h-full bg-slate-400 rounded-full" 
+                          style={{ width: `${analysis.sentimentBreakdown?.neutral || 0}%` }}
+                        ></div>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Negative Tone</span>
                         <span>{analysis.sentimentBreakdown?.negative || 0}%</span>
                       </div>
-                      <Progress 
-                        value={analysis.sentimentBreakdown?.negative || 0} 
-                        className="h-2 bg-slate-100"
-                        indicatorClassName="bg-red-400"
-                      />
+                      <div className="relative w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className="absolute top-0 left-0 h-full bg-red-400 rounded-full" 
+                          style={{ width: `${analysis.sentimentBreakdown?.negative || 0}%` }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

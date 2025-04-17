@@ -11,7 +11,10 @@ import {
   User,
   PhoneCall,
   MessageCircle,
-  Brain
+  Brain,
+  Users,
+  PieChart,
+  LineChart
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
