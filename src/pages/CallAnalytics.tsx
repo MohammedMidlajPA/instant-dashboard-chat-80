@@ -359,7 +359,7 @@ const CallAnalytics = () => {
               )}
             </CardContent>
             <CardFooter className="border-t pt-4 text-xs text-muted-foreground">
-              Total talk time: {formatTime(stats.totalCallDuration)}
+              Total talk time: {formatTime(stats.totalTalkTime)}
             </CardFooter>
           </Card>
 

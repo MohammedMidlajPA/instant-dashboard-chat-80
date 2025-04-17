@@ -171,7 +171,7 @@ const SyntheonAnalytics: React.FC<SyntheonAnalyticsProps> = ({ call }) => {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Agent Talk Ratio</span>
-                      <span className="font-semibold">{analysis.agentMetrics?.talkRatio || 0}%</span>
+                      <span className="font-semibold">{analysis.agentTalkRatio || 0}%</span>
                     </div>
                   </div>
                 </CardContent>
