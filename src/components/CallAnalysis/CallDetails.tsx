@@ -6,6 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { mcubeService, CallRecord } from "@/services/mcube";
 import { SentimentBadge } from "@/components/CallRecordings/SentimentBadge";
+import SyntheonAnalytics from "./SyntheonAnalytics";
+import { Button } from "@/components/ui/button";
 
 interface CallDetailsProps {
   callId: string;
@@ -14,6 +16,7 @@ interface CallDetailsProps {
 export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
   const [call, setCall] = useState<CallRecord | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [analyzing, setAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,6 +39,22 @@ export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
     
     fetchCallDetails();
   }, [callId]);
+
+  const handleAnalyzeCall = async () => {
+    if (!callId) return;
+    
+    setAnalyzing(true);
+    try {
+      const analyzedCall = await mcubeService.analyzeSyntheonCall(callId);
+      if (analyzedCall) {
+        setCall(analyzedCall);
+      }
+    } catch (err) {
+      console.error("Error analyzing call:", err);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   if (!callId) {
     return (
@@ -94,9 +113,9 @@ export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
   }
 
   // Prepare data for display
-  const contactName = call.contact_name || "Unknown Caller";
-  const callDate = call.startedAt || call.call_date 
-    ? new Date(call.startedAt || call.call_date || "").toLocaleString()
+  const contactName = call.contact_name || call.agentName || "Unknown Caller";
+  const callDate = call.startedAt || call.call_date || call.startTime 
+    ? new Date(call.startedAt || call.call_date || call.startTime || "").toLocaleString()
     : "Unknown date";
   const duration = call.duration 
     ? `${Math.floor(call.duration / 60)}m ${call.duration % 60}s` 
@@ -119,86 +138,102 @@ export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex justify-between">
-          <span>Call with {contactName}</span>
-          {callSuccessful !== null && (
-            <span className={callSuccessful ? "text-green-600" : "text-amber-600"}>
-              {callSuccessful 
-                ? <CheckCircle className="h-5 w-5 inline-block mr-1" /> 
-                : <XCircle className="h-5 w-5 inline-block mr-1" />}
-              {callSuccessful ? "Successful" : "Needs Follow-up"}
-            </span>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <div>
-            <p className="text-sm text-gray-500">Date/Time</p>
-            <p className="font-medium">{callDate}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Duration</p>
-            <p className="font-medium">{duration}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Type</p>
-            <p className="font-medium">{call.inquiry_type || "General"}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Sentiment</p>
-            <SentimentBadge type={call.sentiment || "Neutral"} />
-          </div>
-        </div>
-
-        <Tabs defaultValue="transcript">
-          <TabsList className="mb-4">
-            <TabsTrigger value="transcript">Transcript</TabsTrigger>
-            <TabsTrigger value="keywords">Keywords & Topics</TabsTrigger>
-            {(call.recording_url || call.recordingUrl) && <TabsTrigger value="recording">Recording</TabsTrigger>}
-          </TabsList>
-          
-          <TabsContent value="transcript">
-            <div className="bg-gray-50 p-4 rounded-md text-sm whitespace-pre-line">
-              {transcript}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="keywords">
-            {call.keywords && call.keywords.length > 0 ? (
-              <div>
-                <h3 className="text-sm font-medium mb-2">Key Topics</h3>
-                <div className="flex flex-wrap gap-2">
-                  {call.keywords.map((keyword, idx) => (
-                    <span 
-                      key={idx} 
-                      className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm"
-                    >
-                      {keyword}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-500">No keywords or topics detected for this call</p>
+    <>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex justify-between">
+            <span>Call with {contactName}</span>
+            {callSuccessful !== null && (
+              <span className={callSuccessful ? "text-green-600" : "text-amber-600"}>
+                {callSuccessful 
+                  ? <CheckCircle className="h-5 w-5 inline-block mr-1" /> 
+                  : <XCircle className="h-5 w-5 inline-block mr-1" />}
+                {callSuccessful ? "Successful" : "Needs Follow-up"}
+              </span>
             )}
-          </TabsContent>
-          
-          {(call.recording_url || call.recordingUrl) && (
-            <TabsContent value="recording">
-              <div className="p-4 rounded-md bg-gray-50">
-                <h3 className="text-sm font-medium mb-2">Call Recording</h3>
-                <audio controls className="w-full" src={call.recording_url || call.recordingUrl}>
-                  Your browser does not support the audio element.
-                </audio>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <p className="text-sm text-gray-500">Date/Time</p>
+              <p className="font-medium">{callDate}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Duration</p>
+              <p className="font-medium">{duration}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Type</p>
+              <p className="font-medium">{call.inquiry_type || "General"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Sentiment</p>
+              <SentimentBadge type={call.sentiment || "Neutral"} />
+            </div>
+          </div>
+
+          {!call.analysis && (
+            <div className="mb-4">
+              <Button 
+                onClick={handleAnalyzeCall} 
+                disabled={analyzing} 
+                className="mb-4"
+              >
+                {analyzing ? "Analyzing..." : "Analyze Call with Syntheon.ai"}
+              </Button>
+            </div>
+          )}
+
+          {call.analysis && <SyntheonAnalytics call={call} />}
+
+          <Tabs defaultValue="transcript">
+            <TabsList className="mb-4">
+              <TabsTrigger value="transcript">Transcript</TabsTrigger>
+              <TabsTrigger value="keywords">Keywords & Topics</TabsTrigger>
+              {(call.recording_url || call.recordingUrl) && <TabsTrigger value="recording">Recording</TabsTrigger>}
+            </TabsList>
+            
+            <TabsContent value="transcript">
+              <div className="bg-gray-50 p-4 rounded-md text-sm whitespace-pre-line">
+                {transcript}
               </div>
             </TabsContent>
-          )}
-        </Tabs>
-      </CardContent>
-    </Card>
+            
+            <TabsContent value="keywords">
+              {call.keywords && call.keywords.length > 0 ? (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Key Topics</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {call.keywords.map((keyword, idx) => (
+                      <span 
+                        key={idx} 
+                        className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500">No keywords or topics detected for this call</p>
+              )}
+            </TabsContent>
+            
+            {(call.recording_url || call.recordingUrl) && (
+              <TabsContent value="recording">
+                <div className="p-4 rounded-md bg-gray-50">
+                  <h3 className="text-sm font-medium mb-2">Call Recording</h3>
+                  <audio controls className="w-full" src={call.recording_url || call.recordingUrl}>
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
+              </TabsContent>
+            )}
+          </Tabs>
+        </CardContent>
+      </Card>
+    </>
   );
 };
 

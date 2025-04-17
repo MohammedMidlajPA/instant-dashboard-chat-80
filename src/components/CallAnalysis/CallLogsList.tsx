@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { PlayIcon, MessageSquareIcon, InfoIcon, AlertCircle } from "lucide-react";
+import { PlayIcon, MessageSquareIcon, InfoIcon, AlertCircle, BarChart2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SentimentBadge } from "@/components/CallRecordings/SentimentBadge";
 import { CallTypeBadge } from "@/components/CallRecordings/CallTypeBadge";
@@ -36,9 +36,10 @@ const computeCallDuration = (call: CallRecord): string => {
 interface CallLogsListProps {
   recordings: CallRecord[];
   isLoading: boolean;
+  onSelectCall?: (callId: string) => void;
 }
 
-export const CallLogsList: React.FC<CallLogsListProps> = ({ recordings, isLoading }) => {
+export const CallLogsList: React.FC<CallLogsListProps> = ({ recordings, isLoading, onSelectCall }) => {
   const [selectedRecording, setSelectedRecording] = useState<CallRecord | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -70,8 +71,8 @@ export const CallLogsList: React.FC<CallLogsListProps> = ({ recordings, isLoadin
                 <div className="mt-3 text-sm">
                   <p className="font-medium text-amber-800">Troubleshooting steps:</p>
                   <ul className="list-disc pl-5 mt-1 text-amber-700 space-y-1">
-                    <li>Verify your VAPI API key is correct</li>
-                    <li>Check if your assistant ID is valid</li>
+                    <li>Verify your MCUBE API key is correct</li>
+                    <li>Check your network connection</li>
                     <li>Try refreshing the connection</li>
                   </ul>
                 </div>
@@ -90,7 +91,7 @@ export const CallLogsList: React.FC<CallLogsListProps> = ({ recordings, isLoadin
               <TableHead>Type</TableHead>
               <TableHead>Inquiry</TableHead>
               <TableHead>Sentiment</TableHead>
-              <TableHead>Topics</TableHead>
+              <TableHead>Analysis</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -107,17 +108,17 @@ export const CallLogsList: React.FC<CallLogsListProps> = ({ recordings, isLoadin
               </TableRow>
             ) : (
               recordings.map((recording) => (
-                <TableRow key={recording.id}>
+                <TableRow key={recording.id} className="cursor-pointer" onClick={() => onSelectCall && onSelectCall(recording.id)}>
                   <TableCell className="font-medium">{recording.contact_name || "Unknown"}</TableCell>
                   <TableCell>{recording.company_name || "College Inquiry"}</TableCell>
                   <TableCell>
-                    {recording.startedAt || recording.call_date 
-                      ? new Date(recording.startedAt || recording.call_date || "").toLocaleDateString() 
+                    {recording.startedAt || recording.call_date || recording.startTime 
+                      ? new Date(recording.startedAt || recording.call_date || recording.startTime || "").toLocaleDateString() 
                       : "Unknown"}
                   </TableCell>
                   <TableCell>{computeCallDuration(recording)}</TableCell>
                   <TableCell>
-                    <CallTypeBadge type={recording.inquiry_type || "Inbound"} />
+                    <CallTypeBadge type={recording.direction || "Inbound"} />
                   </TableCell>
                   <TableCell>
                     {recording.inquiry_type && <InquiryTypeBadge type={recording.inquiry_type} />}
@@ -126,37 +127,37 @@ export const CallLogsList: React.FC<CallLogsListProps> = ({ recordings, isLoadin
                     <SentimentBadge type={recording.sentiment || "Neutral"} />
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {recording.keywords && recording.keywords.slice(0, 2).map((keyword, i) => (
-                        <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
-                          {keyword}
-                        </span>
-                      ))}
-                      {recording.keywords && recording.keywords.length > 2 && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="bg-gray-100 px-2 py-0.5 rounded text-xs cursor-pointer">
-                                +{recording.keywords.length - 2}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="max-w-xs">
-                                {recording.keywords.slice(2).join(", ")}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                    </div>
+                    {recording.analysis ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={`inline-block w-5 h-5 rounded-full ${
+                              recording.analysis.successEvaluation ? 'bg-green-500' : 'bg-amber-500'
+                            }`}>
+                              <BarChart2 className="h-3 w-3 text-white mx-auto my-1" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="max-w-xs text-xs">
+                              <div className="font-semibold mb-1">Syntheon.ai Analysis:</div>
+                              <div>Script adherence: {recording.analysis.scriptAdherence || 0}%</div>
+                              <div>Dead air: {recording.analysis.deadAirPercentage || 0}%</div>
+                              <div>Empathy score: {recording.analysis.agentMetrics?.empathyScore || 0}%</div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <span className="text-xs text-gray-400">Not analyzed</span>
+                    )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex space-x-1">
                       <Button 
                         variant="outline" 
                         size="sm" 
                         title="Play recording" 
-                        disabled={!recording.recording_url}
+                        disabled={!recording.recording_url && !recording.recordingUrl}
                       >
                         <PlayIcon className="h-3 w-3" />
                       </Button>
@@ -176,14 +177,14 @@ export const CallLogsList: React.FC<CallLogsListProps> = ({ recordings, isLoadin
                             <DialogTitle>Call Transcript</DialogTitle>
                             <DialogDescription>
                               {selectedRecording?.contact_name || "Unknown"} - {
-                                selectedRecording?.startedAt || selectedRecording?.call_date 
-                                  ? new Date(selectedRecording?.startedAt || selectedRecording?.call_date || "").toLocaleString()
+                                selectedRecording?.startedAt || selectedRecording?.call_date || selectedRecording?.startTime 
+                                  ? new Date(selectedRecording?.startedAt || selectedRecording?.call_date || selectedRecording?.startTime || "").toLocaleString()
                                   : "Unknown date"
                               }
                             </DialogDescription>
                           </DialogHeader>
                           <div className="mt-4 bg-gray-50 p-4 rounded-md text-sm">
-                            {selectedRecording?.transcription || "No transcription available for this call."}
+                            {selectedRecording?.transcription || selectedRecording?.transcript || "No transcription available for this call."}
                           </div>
                           {selectedRecording?.keywords && selectedRecording.keywords.length > 0 && (
                             <div className="mt-4">

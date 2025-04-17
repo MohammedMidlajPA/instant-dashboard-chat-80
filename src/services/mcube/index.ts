@@ -5,13 +5,16 @@ import {
   McubeOutboundCallResponse, 
   CallRecord, 
   CallFilters,
-  CallCampaign
+  CallCampaign,
+  SyntheonAnalysisRequest,
+  SyntheonAnalysisResponse
 } from './types';
 import { toast } from 'sonner';
 
 // Constants
 const MCUBE_API_BASE_URL = 'https://api.mcube.com/Restmcube-api';
 const MCUBE_TOKEN_KEY = 'mcube_api_token';
+const SYNTHEON_API_BASE_URL = 'https://api.syntheon.ai';
 
 /**
  * MCube Service for handling inbound and outbound calls
@@ -67,14 +70,18 @@ class McubeService {
     const callRecord: CallRecord = {
       id: callData.callid,
       startTime: callData.starttime,
+      startedAt: callData.starttime,
+      call_date: callData.starttime,
       endTime: callData.endtime,
       direction: callData.direction.toLowerCase() as 'inbound' | 'outbound',
       status: callData.dialstatus,
       agentPhone: callData.emp_phone,
       agentName: callData.agentname,
+      contact_name: "Unknown Caller", // Default value
       customerPhone: callData.callto,
       didNumber: callData.clicktocalldid,
       recordingUrl: callData.filename,
+      recording_url: callData.filename,
       disconnectedBy: callData.disconnectedby,
       answeredTime: callData.answeredtime,
       groupName: callData.groupname,
@@ -84,6 +91,7 @@ class McubeService {
       sentiment: 'Neutral',
       keywords: [],
       transcription: '',
+      transcript: '',
     };
 
     // Add call to our local storage
@@ -151,10 +159,13 @@ class McubeService {
             const callRecord: CallRecord = {
               id: callId,
               startTime,
+              startedAt: startTime,
+              call_date: startTime,
               direction: 'outbound',
               status: 'INITIATED',
               agentPhone,
               customerPhone,
+              contact_name: "Unknown",
               duration: 0,
             };
             
@@ -187,10 +198,13 @@ class McubeService {
         const mockCallRecord: CallRecord = {
           id: callId,
           startTime,
+          startedAt: startTime,
+          call_date: startTime,
           direction: 'outbound',
           status: 'INITIATED',
           agentPhone,
           customerPhone,
+          contact_name: "Unknown",
           duration: 0,
         };
         
@@ -207,6 +221,7 @@ class McubeService {
             sentiment: Math.random() > 0.3 ? 'Positive' : 'Neutral',
             disconnectedBy: Math.random() > 0.5 ? 'Agent' : 'Customer',
             recordingUrl: 'https://example.com/mock-recording.wav',
+            recording_url: 'https://example.com/mock-recording.wav',
           };
           
           this.storeCall(updatedCall);
@@ -214,6 +229,11 @@ class McubeService {
           
           // Show toast notification
           toast.success('Call completed successfully');
+          
+          // Simulate Syntheon.ai analysis after call
+          setTimeout(() => {
+            this.analyzeSyntheonCall(callId);
+          }, 2000);
           
         }, 5000); // After 5 seconds
         
@@ -285,6 +305,138 @@ class McubeService {
    */
   public getCallById(callId: string): CallRecord | null {
     return this.calls.find(call => call.id === callId) || null;
+  }
+
+  /**
+   * Request Syntheon.ai analysis for a call
+   */
+  public async analyzeSyntheonCall(callId: string): Promise<CallRecord | null> {
+    const call = this.getCallById(callId);
+    if (!call || !call.recordingUrl) {
+      console.error('Cannot analyze call: missing call data or recording URL');
+      return null;
+    }
+    
+    try {
+      console.log(`Requesting Syntheon.ai analysis for call ${callId}`);
+      
+      // In production, make the actual API call to Syntheon.ai
+      // For now, we'll simulate a response
+      
+      // Simulate analysis delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Generate mock Syntheon.ai analysis results
+      const scriptAdherence = Math.floor(Math.random() * 30) + 70; // 70-100%
+      const deadAirSeconds = Math.floor(Math.random() * 30); // 0-30 seconds
+      const deadAirPercentage = Number(((deadAirSeconds / (call.duration || 60)) * 100).toFixed(1));
+      const talkSpeed = Math.floor(Math.random() * 50) + 120; // 120-170 wpm
+      const interruptionCount = Math.floor(Math.random() * 5); // 0-5
+      const questionCount = Math.floor(Math.random() * 10) + 5; // 5-15
+      const empathyScore = Math.floor(Math.random() * 40) + 60; // 60-100
+      
+      const keyInsights = [
+        "Customer expressed interest in premium features",
+        "Pricing was a key concern during the conversation",
+        "Customer mentioned competitor's offering",
+        "Follow-up needed on technical specifications"
+      ].sort(() => Math.random() - 0.5).slice(0, 3);
+      
+      // Update call with analysis data
+      const updatedCall: CallRecord = {
+        ...call,
+        analysis: {
+          successEvaluation: Math.random() > 0.3,
+          success_evaluation: Math.random() > 0.3,
+          scriptAdherence,
+          deadAirSeconds,
+          deadAirPercentage,
+          sentimentBreakdown: {
+            positive: Math.floor(Math.random() * 60) + 40, // 40-100
+            neutral: Math.floor(Math.random() * 40), // 0-40
+            negative: Math.floor(Math.random() * 20) // 0-20
+          },
+          agentMetrics: {
+            talkSpeed,
+            interruptionCount,
+            questionCount,
+            empathyScore
+          },
+          keyInsights
+        }
+      };
+      
+      // Store the updated call
+      this.storeCall(updatedCall);
+      this.notifyListeners();
+      
+      toast.success('Call analysis completed');
+      
+      return updatedCall;
+    } catch (error) {
+      console.error('Error analyzing call with Syntheon.ai:', error);
+      toast.error('Failed to analyze call');
+      return null;
+    }
+  }
+  
+  /**
+   * Get call performance metrics across all calls
+   */
+  public getPerformanceMetrics() {
+    const calls = this.getCalls();
+    if (calls.length === 0) {
+      return {
+        averageScriptAdherence: 0,
+        averageDeadAirPercentage: 0,
+        averageTalkSpeed: 0,
+        averageEmpathyScore: 0,
+        totalInterruptions: 0,
+        callSuccessRate: 0
+      };
+    }
+    
+    // Filter calls with analysis data
+    const analyzedCalls = calls.filter(call => call.analysis);
+    if (analyzedCalls.length === 0) {
+      return {
+        averageScriptAdherence: 0,
+        averageDeadAirPercentage: 0,
+        averageTalkSpeed: 0,
+        averageEmpathyScore: 0,
+        totalInterruptions: 0,
+        callSuccessRate: 0
+      };
+    }
+    
+    // Calculate metrics
+    const averageScriptAdherence = analyzedCalls.reduce((sum, call) => 
+      sum + (call.analysis?.scriptAdherence || 0), 0) / analyzedCalls.length;
+      
+    const averageDeadAirPercentage = analyzedCalls.reduce((sum, call) => 
+      sum + (call.analysis?.deadAirPercentage || 0), 0) / analyzedCalls.length;
+      
+    const averageTalkSpeed = analyzedCalls.reduce((sum, call) => 
+      sum + (call.analysis?.agentMetrics?.talkSpeed || 0), 0) / analyzedCalls.length;
+      
+    const averageEmpathyScore = analyzedCalls.reduce((sum, call) => 
+      sum + (call.analysis?.agentMetrics?.empathyScore || 0), 0) / analyzedCalls.length;
+      
+    const totalInterruptions = analyzedCalls.reduce((sum, call) => 
+      sum + (call.analysis?.agentMetrics?.interruptionCount || 0), 0);
+      
+    const successfulCalls = analyzedCalls.filter(call => 
+      call.analysis?.successEvaluation || call.analysis?.success_evaluation).length;
+    const callSuccessRate = (successfulCalls / analyzedCalls.length) * 100;
+    
+    return {
+      averageScriptAdherence,
+      averageDeadAirPercentage,
+      averageTalkSpeed,
+      averageEmpathyScore,
+      totalInterruptions,
+      callSuccessRate
+    };
   }
 
   /**
@@ -395,6 +547,8 @@ class McubeService {
       {
         id: 'mcube-1',
         startTime: '2025-04-16T10:30:00Z',
+        startedAt: '2025-04-16T10:30:00Z',
+        call_date: '2025-04-16T10:30:00Z',
         endTime: '2025-04-16T10:45:00Z',
         duration: 900,
         direction: 'inbound',
@@ -402,18 +556,48 @@ class McubeService {
         agentPhone: '8767316316',
         agentName: 'John Smith',
         customerPhone: '5551234567',
+        contact_name: 'Michael Brown',
+        company_name: 'Tech Solutions Inc.',
         didNumber: '8035053336',
         recordingUrl: 'https://example.com/recording-1.wav',
+        recording_url: 'https://example.com/recording-1.wav',
         disconnectedBy: 'Customer',
         answeredTime: '00:00:03',
         groupName: 'Inbound',
         sentiment: 'Positive',
         transcription: 'Hello, I need information about your product. Could you please tell me more about the features?',
+        transcript: 'Hello, I need information about your product. Could you please tell me more about the features?',
         keywords: ['information', 'product', 'features'],
+        inquiry_type: 'Product Information',
+        analysis: {
+          successEvaluation: true,
+          success_evaluation: true,
+          scriptAdherence: 92,
+          deadAirSeconds: 8,
+          deadAirPercentage: 0.9,
+          sentimentBreakdown: {
+            positive: 75,
+            neutral: 20,
+            negative: 5
+          },
+          agentMetrics: {
+            talkSpeed: 145,
+            interruptionCount: 0,
+            questionCount: 8,
+            empathyScore: 85
+          },
+          keyInsights: [
+            "Customer interested in premium features",
+            "Customer requested pricing information",
+            "Follow-up demo requested"
+          ]
+        }
       },
       {
         id: 'mcube-2',
         startTime: '2025-04-16T11:15:00Z',
+        startedAt: '2025-04-16T11:15:00Z',
+        call_date: '2025-04-16T11:15:00Z',
         endTime: '2025-04-16T11:25:00Z',
         duration: 600,
         direction: 'outbound',
@@ -421,17 +605,47 @@ class McubeService {
         agentPhone: '8767316317',
         agentName: 'Jane Williams',
         customerPhone: '5559876543',
+        contact_name: 'Sarah Johnson',
+        company_name: 'Digital Marketing Group',
         recordingUrl: 'https://example.com/recording-2.wav',
+        recording_url: 'https://example.com/recording-2.wav',
         disconnectedBy: 'Agent',
         answeredTime: '00:00:05',
         groupName: 'Autodialer',
         sentiment: 'Neutral',
         transcription: 'I\'m calling to follow up on our previous conversation about our new service offering.',
+        transcript: 'I\'m calling to follow up on our previous conversation about our new service offering.',
         keywords: ['follow up', 'service', 'offering'],
+        inquiry_type: 'Follow-up',
+        analysis: {
+          successEvaluation: true,
+          success_evaluation: true,
+          scriptAdherence: 86,
+          deadAirSeconds: 12,
+          deadAirPercentage: 2.0,
+          sentimentBreakdown: {
+            positive: 55,
+            neutral: 40,
+            negative: 5
+          },
+          agentMetrics: {
+            talkSpeed: 152,
+            interruptionCount: 1,
+            questionCount: 7,
+            empathyScore: 78
+          },
+          keyInsights: [
+            "Customer requested pricing sheet",
+            "Mentioned budget constraints",
+            "Asked about implementation timeline"
+          ]
+        }
       },
       {
         id: 'mcube-3',
         startTime: '2025-04-16T14:00:00Z',
+        startedAt: '2025-04-16T14:00:00Z',
+        call_date: '2025-04-16T14:00:00Z',
         endTime: '2025-04-16T14:02:00Z',
         duration: 120,
         direction: 'inbound',
@@ -439,18 +653,48 @@ class McubeService {
         agentPhone: '8767316318',
         agentName: 'Robert Johnson',
         customerPhone: '5555551234',
+        contact_name: 'Alex Thompson',
+        company_name: 'Global Enterprises',
         didNumber: '8035053336',
         recordingUrl: 'https://example.com/recording-3.wav',
+        recording_url: 'https://example.com/recording-3.wav',
         disconnectedBy: 'Customer',
         answeredTime: '00:00:02',
         groupName: 'Inbound',
         sentiment: 'Negative',
         transcription: 'I\'ve been waiting for a callback for days. This is unacceptable customer service.',
+        transcript: 'I\'ve been waiting for a callback for days. This is unacceptable customer service.',
         keywords: ['waiting', 'callback', 'unacceptable', 'customer service'],
+        inquiry_type: 'Complaint',
+        analysis: {
+          successEvaluation: false,
+          success_evaluation: false,
+          scriptAdherence: 76,
+          deadAirSeconds: 5,
+          deadAirPercentage: 4.2,
+          sentimentBreakdown: {
+            positive: 10,
+            neutral: 30,
+            negative: 60
+          },
+          agentMetrics: {
+            talkSpeed: 162,
+            interruptionCount: 3,
+            questionCount: 4,
+            empathyScore: 65
+          },
+          keyInsights: [
+            "Customer frustrated about delayed response",
+            "Previous rep promised 24-hour callback",
+            "Customer threatening to cancel service"
+          ]
+        }
       },
       {
         id: 'mcube-4',
         startTime: '2025-04-16T16:30:00Z',
+        startedAt: '2025-04-16T16:30:00Z',
+        call_date: '2025-04-16T16:30:00Z',
         endTime: '2025-04-16T16:40:00Z',
         duration: 600,
         direction: 'outbound',
@@ -458,17 +702,47 @@ class McubeService {
         agentPhone: '8767316317',
         agentName: 'Jane Williams',
         customerPhone: '5552223333',
+        contact_name: 'Mark Davis',
+        company_name: 'Innovation Labs',
         recordingUrl: 'https://example.com/recording-4.wav',
+        recording_url: 'https://example.com/recording-4.wav',
         disconnectedBy: 'Agent',
         answeredTime: '00:00:04',
         groupName: 'Autodialer',
         sentiment: 'Positive',
         transcription: 'Thank you for your interest in our premium plan. I can help you set that up today.',
+        transcript: 'Thank you for your interest in our premium plan. I can help you set that up today.',
         keywords: ['premium', 'plan', 'setup'],
+        inquiry_type: 'Sales',
+        analysis: {
+          successEvaluation: true,
+          success_evaluation: true,
+          scriptAdherence: 94,
+          deadAirSeconds: 6,
+          deadAirPercentage: 1.0,
+          sentimentBreakdown: {
+            positive: 85,
+            neutral: 15,
+            negative: 0
+          },
+          agentMetrics: {
+            talkSpeed: 138,
+            interruptionCount: 0,
+            questionCount: 9,
+            empathyScore: 92
+          },
+          keyInsights: [
+            "Customer agreed to premium subscription",
+            "Setup scheduled for next week",
+            "Customer requested email confirmation"
+          ]
+        }
       },
       {
         id: 'mcube-5',
         startTime: '2025-04-17T09:15:00Z',
+        startedAt: '2025-04-17T09:15:00Z',
+        call_date: '2025-04-17T09:15:00Z',
         endTime: '2025-04-17T09:20:00Z',
         duration: 300,
         direction: 'inbound',
@@ -476,14 +750,42 @@ class McubeService {
         agentPhone: '8767316316',
         agentName: 'John Smith',
         customerPhone: '5554443333',
+        contact_name: 'Jennifer Chen',
+        company_name: 'Pacific Traders',
         didNumber: '8035053336',
         recordingUrl: 'https://example.com/recording-5.wav',
+        recording_url: 'https://example.com/recording-5.wav',
         disconnectedBy: 'Agent',
         answeredTime: '00:00:02',
         groupName: 'Inbound',
         sentiment: 'Neutral',
         transcription: 'I\'m calling to check the status of my order #12345. Can you help me with that?',
+        transcript: 'I\'m calling to check the status of my order #12345. Can you help me with that?',
         keywords: ['status', 'order', 'check'],
+        inquiry_type: 'Support',
+        analysis: {
+          successEvaluation: true,
+          success_evaluation: true,
+          scriptAdherence: 89,
+          deadAirSeconds: 10,
+          deadAirPercentage: 3.3,
+          sentimentBreakdown: {
+            positive: 45,
+            neutral: 50,
+            negative: 5
+          },
+          agentMetrics: {
+            talkSpeed: 133,
+            interruptionCount: 1,
+            questionCount: 6,
+            empathyScore: 83
+          },
+          keyInsights: [
+            "Order status provided and confirmed",
+            "Customer requested delivery date confirmation",
+            "Special handling instructions noted"
+          ]
+        }
       }
     ];
     

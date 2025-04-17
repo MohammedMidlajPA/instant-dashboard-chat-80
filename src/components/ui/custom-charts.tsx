@@ -168,3 +168,25 @@ export const PieChart: React.FC<PieChartProps> = ({
     </div>
   );
 };
+
+// Custom Progress component that supports different indicator colors
+interface ProgressProps {
+  value: number;
+  className?: string;
+  indicatorClassName?: string;
+}
+
+export const Progress: React.FC<ProgressProps> = ({ 
+  value, 
+  className = "h-2 bg-gray-100", 
+  indicatorClassName = "bg-primary"
+}) => {
+  return (
+    <div className={`relative overflow-hidden rounded-full ${className}`}>
+      <div 
+        className={`h-full ${indicatorClassName}`}
+        style={{ width: `${value}%` }}
+      />
+    </div>
+  );
+};

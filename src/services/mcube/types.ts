@@ -37,24 +37,55 @@ export interface McubeOutboundCallResponse {
 
 // Standardized call record format for our application
 export interface CallRecord {
-  id: string;                   // Unique ID (callid from MCUBE)
-  startTime: string;            // Call start time
-  endTime?: string;             // Call end time
-  duration?: number;            // Duration in seconds
+  id: string;                     // Unique ID (callid from MCUBE)
+  startTime: string;              // Call start time
+  startedAt?: string;             // Alternative start time format
+  call_date?: string;             // Alternative date format
+  endTime?: string;               // Call end time
+  duration?: number;              // Duration in seconds
   direction: 'inbound' | 'outbound';
-  status: string;               // Call status (from dialstatus)
-  agentPhone: string;           // Agent phone (emp_phone)
-  agentName?: string;           // Agent name if available
-  customerPhone: string;        // Customer phone (callto)
-  didNumber?: string;           // DID number (clicktocalldid)
-  recordingUrl?: string;        // Recording URL (filename)
-  disconnectedBy?: string;      // Who ended the call
-  answeredTime?: string;        // When call was answered
-  groupName?: string;           // Call group
-  transcription?: string;       // Will be populated if available
-  sentiment?: string;           // Sentiment analysis result
-  keywords?: string[];          // Keywords extracted from transcription
-  notes?: string;               // Call notes
+  status: string;                 // Call status (from dialstatus)
+  agentPhone: string;             // Agent phone (emp_phone)
+  agentName?: string;             // Agent name if available
+  customerPhone: string;          // Customer phone (callto)
+  didNumber?: string;             // DID number (clicktocalldid)
+  recordingUrl?: string;          // Recording URL (filename)
+  recording_url?: string;         // Alternative recording URL
+  disconnectedBy?: string;        // Who ended the call
+  answeredTime?: string;          // When call was answered
+  groupName?: string;             // Call group
+  transcription?: string;         // Call transcription
+  transcript?: string;            // Alternative transcription field
+  sentiment?: string;             // Sentiment analysis result
+  keywords?: string[];            // Keywords extracted from transcription
+  notes?: string;                 // Call notes
+  contact_name?: string;          // Contact/customer name
+  company_name?: string;          // Company name
+  inquiry_type?: string;          // Type of inquiry
+  
+  // Syntheon.ai specific fields
+  analysis?: {
+    successEvaluation?: boolean;  // Whether call was successful
+    success_evaluation?: boolean; // Alternative field
+    scriptAdherence?: number;     // Script adherence percentage (0-100)
+    deadAirSeconds?: number;      // Total dead air in seconds
+    deadAirPercentage?: number;   // Dead air as percentage of call
+    sentimentBreakdown?: {        // Detailed sentiment analysis
+      positive: number;
+      neutral: number;
+      negative: number;
+    };
+    agentMetrics?: {              // Agent performance metrics
+      talkSpeed: number;          // Words per minute
+      interruptionCount: number;  // Times agent interrupted customer
+      questionCount: number;      // Questions asked by agent
+      empathyScore: number;       // Empathy rating (0-100)
+    };
+    keyInsights?: string[];       // Important takeaways from call
+  };
+  
+  // For compatibility with existing code
+  success_evaluation?: boolean;   // Whether call was successful
 }
 
 // Filters for retrieving calls
@@ -93,4 +124,31 @@ export interface CampaignContact {
   status: 'pending' | 'contacted' | 'completed' | 'failed';
   callId?: string;
   notes?: string;
+}
+
+// Syntheon.ai Analysis Request
+export interface SyntheonAnalysisRequest {
+  callId: string;
+  recordingUrl: string;
+  transcription?: string;
+  scriptId?: string;
+}
+
+// Syntheon.ai Analysis Response
+export interface SyntheonAnalysisResponse {
+  callId: string;
+  summary: string;
+  sentiment: string;
+  scriptAdherence?: number;
+  deadAirSeconds: number;
+  deadAirPercentage: number;
+  keywords: string[];
+  agentMetrics: {
+    talkSpeed: number;
+    interruptionCount: number;
+    questionCount: number;
+    empathyScore: number;
+  };
+  keyInsights: string[];
+  success: boolean;
 }
