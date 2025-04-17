@@ -1,4 +1,3 @@
-
 // MCUBE API Types
 
 // Inbound call payload structure from MCUBE
@@ -65,27 +64,29 @@ export interface CallRecord {
   
   // Syntheon.ai specific fields
   analysis?: {
-    successEvaluation?: boolean;  // Whether call was successful
-    success_evaluation?: boolean; // Alternative field
-    scriptAdherence?: number;     // Script adherence percentage (0-100)
-    deadAirSeconds?: number;      // Total dead air in seconds
-    deadAirPercentage?: number;   // Dead air as percentage of call
-    sentimentBreakdown?: {        // Detailed sentiment analysis
+    successEvaluation?: boolean;    // Whether call was successful
+    success_evaluation?: boolean;   // Alternative field
+    scriptAdherence?: number;       // Script adherence percentage (0-100)
+    deadAirSeconds?: number;        // Total dead air in seconds
+    deadAirPercentage?: number;     // Dead air as percentage of call
+    agentTalkRatio?: number;        // Percentage of call where agent is talking
+    sentimentBreakdown?: {          // Detailed sentiment analysis
       positive: number;
       neutral: number;
       negative: number;
     };
-    agentMetrics?: {              // Agent performance metrics
-      talkSpeed: number;          // Words per minute
-      interruptionCount: number;  // Times agent interrupted customer
-      questionCount: number;      // Questions asked by agent
-      empathyScore: number;       // Empathy rating (0-100)
+    agentMetrics?: {                // Agent performance metrics
+      talkSpeed: number;            // Words per minute
+      interruptionCount: number;    // Times agent interrupted customer
+      questionCount: number;        // Questions asked by agent
+      empathyScore: number;         // Empathy rating (0-100)
+      talkRatio?: number;           // Alternative field for talk ratio
     };
-    keyInsights?: string[];       // Important takeaways from call
+    keyInsights?: string[];         // Important takeaways from call
   };
   
   // For compatibility with existing code
-  success_evaluation?: boolean;   // Whether call was successful
+  success_evaluation?: boolean;     // Whether call was successful
 }
 
 // Filters for retrieving calls

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -24,6 +23,9 @@ const SyntheonAnalytics: React.FC<SyntheonAnalyticsProps> = ({ call }) => {
   }
 
   const { analysis } = call;
+  
+  const talkRatio = analysis.agentTalkRatio || 
+                   (analysis.agentMetrics?.talkRatio) || 0;
 
   return (
     <Card className="mb-4">
@@ -171,7 +173,7 @@ const SyntheonAnalytics: React.FC<SyntheonAnalyticsProps> = ({ call }) => {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Agent Talk Ratio</span>
-                      <span className="font-semibold">{analysis.agentTalkRatio || 0}%</span>
+                      <span className="font-semibold">{talkRatio}%</span>
                     </div>
                   </div>
                 </CardContent>
