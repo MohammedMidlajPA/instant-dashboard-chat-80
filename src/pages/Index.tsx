@@ -1,12 +1,12 @@
+
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ChatInterface } from "@/components/ChatInterface";
 import { AnalyticsCard } from "@/components/AnalyticsCard";
 import { AnalyticsChart } from "@/components/AnalyticsChart";
 import { Users, GraduationCap, TrendingUp, Activity, PhoneCall, BookOpen, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
-import { vapiService } from "@/services/vapiService";
 import { toast } from "sonner";
-import { useVapiRealtime } from "@/hooks/useVapiRealtime";
+import { mcubeService } from "@/services/mcube";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -18,39 +18,58 @@ const Index = () => {
     activeApplicants: "521"
   });
 
-  const { 
-    data: callData, 
-    isLoading, 
-    isConnected, 
-    refetch 
-  } = useVapiRealtime({
-    fetchInterval: 30000, // 30 seconds
-    initialFetchDelay: 1000, // 1 second initial delay
-  });
+  const [callData, setCallData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
+
+  const fetchCallData = async () => {
+    setIsLoading(true);
+    try {
+      const calls = mcubeService.getCalls();
+      setCallData(calls);
+      setIsConnected(true);
+      
+      // Update stats based on call data
+      if (calls && calls.length > 0) {
+        const uniqueContacts = new Set(calls.map(call => call.customerPhone)).size;
+        const totalCalls = calls.length;
+        
+        const applicationKeywords = ["application", "apply", "applied", "submitted", "enrollment"];
+        const applicationCalls = calls.filter(call => {
+          const transcription = (call.transcription || "").toLowerCase();
+          return applicationKeywords.some(keyword => transcription.includes(keyword));
+        }).length;
+        
+        const conversionRate = totalCalls > 0 ? ((applicationCalls / totalCalls) * 100).toFixed(2) : "0.00";
+        
+        setStats({
+          totalStudents: uniqueContacts.toString(),
+          inquiries: totalCalls.toString(),
+          conversionRate: `${conversionRate}%`,
+          activeApplicants: applicationCalls.toString()
+        });
+        
+        toast.success("Dashboard updated with real-time data");
+      }
+    } catch (error) {
+      console.error("Error fetching call data:", error);
+      setIsConnected(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (callData && callData.length > 0) {
-      const uniqueContacts = new Set(callData.map(call => call.contact_name || call.customer_phone)).size;
-      const totalCalls = callData.length;
-      
-      const applicationKeywords = ["application", "apply", "applied", "submitted", "enrollment"];
-      const applicationCalls = callData.filter(call => {
-        const transcription = (call.transcription || "").toLowerCase();
-        return applicationKeywords.some(keyword => transcription.includes(keyword));
-      }).length;
-      
-      const conversionRate = totalCalls > 0 ? ((applicationCalls / totalCalls) * 100).toFixed(2) : "0.00";
-      
-      setStats({
-        totalStudents: uniqueContacts.toString(),
-        inquiries: totalCalls.toString(),
-        conversionRate: `${conversionRate}%`,
-        activeApplicants: applicationCalls.toString()
-      });
-      
-      toast.success("Dashboard updated with real-time data");
-    }
-  }, [callData]);
+    fetchCallData();
+    
+    // Subscribe to call updates
+    const unsubscribe = mcubeService.subscribeToCallUpdates((calls) => {
+      setCallData(calls);
+      setIsConnected(true);
+    });
+    
+    return () => unsubscribe();
+  }, []);
 
   return (
     <DashboardLayout>
@@ -64,18 +83,18 @@ const Index = () => {
             {isConnected ? (
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                Connected to VAPI
+                Connected to MCUBE
               </Badge>
             ) : (
               <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-amber-500"></span>
-                Connecting to VAPI...
+                Connecting to MCUBE...
               </Badge>
             )}
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={refetch} 
+              onClick={fetchCallData} 
               disabled={isLoading}
               className="ml-2"
             >

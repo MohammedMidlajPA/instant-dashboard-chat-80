@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SentimentBadge } from "@/components/CallRecordings/SentimentBadge";
 import { CallTypeBadge } from "@/components/CallRecordings/CallTypeBadge";
 import { InquiryTypeBadge } from "@/components/CallRecordings/InquiryTypeBadge";
-import { computeCallDuration, CallSummary } from "@/services/vapi";
+import { CallRecord } from "@/services/mcube";
 import {
   Dialog,
   DialogContent,
@@ -23,13 +23,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// Helper function for computing call duration
+const computeCallDuration = (call: CallRecord): string => {
+  if (call.duration) {
+    const minutes = Math.floor(call.duration / 60);
+    const seconds = call.duration % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+  return "N/A";
+};
+
 interface CallLogsListProps {
-  recordings: CallSummary[];
+  recordings: CallRecord[];
   isLoading: boolean;
 }
 
 export const CallLogsList: React.FC<CallLogsListProps> = ({ recordings, isLoading }) => {
-  const [selectedRecording, setSelectedRecording] = useState<CallSummary | null>(null);
+  const [selectedRecording, setSelectedRecording] = useState<CallRecord | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
   React.useEffect(() => {

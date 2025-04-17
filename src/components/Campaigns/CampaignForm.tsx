@@ -10,7 +10,7 @@ import { ChevronRight, ChevronLeft, Calendar, Clock } from "lucide-react";
 import { CsvUploader } from "./CsvUploader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { vapiService } from "@/services/vapiService";
+import { mcubeService } from "@/services/mcube";
 
 interface CampaignFormProps {
   onSuccess: () => void;
@@ -112,7 +112,7 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
       }
       
       // Call API to create campaign
-      await vapiService.createCampaign(payload);
+      await mcubeService.createCampaign(payload);
       
       toast.success("Campaign created successfully!");
       onSuccess();

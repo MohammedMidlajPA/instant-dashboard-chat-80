@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
-import { getCallDetails, CallDetails as CallDetailsType } from "@/services/vapi";
+import { mcubeService, CallRecord } from "@/services/mcube";
 import { SentimentBadge } from "@/components/CallRecordings/SentimentBadge";
 
 interface CallDetailsProps {
@@ -12,7 +12,7 @@ interface CallDetailsProps {
 }
 
 export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
-  const [call, setCall] = useState<CallDetailsType | null>(null);
+  const [call, setCall] = useState<CallRecord | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +24,7 @@ export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
       setError(null);
       
       try {
-        const details = await getCallDetails(callId);
+        const details = mcubeService.getCallById(callId);
         setCall(details);
       } catch (err) {
         console.error("Error fetching call details:", err);

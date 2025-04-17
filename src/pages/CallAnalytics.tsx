@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, LineChart, PieChart } from "@/components/ui/chart";
+import { LineChart, BarChart, PieChart } from "@/components/ui/custom-charts";
 import { Phone, UserCheck, Clock, CalendarDays, TrendingUp, Mic, Users } from 'lucide-react';
 import { useMcubeCalls } from '@/hooks/useMcubeCalls';
 import { format } from 'date-fns';
