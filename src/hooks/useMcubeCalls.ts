@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { mcubeService, CallRecord, CallFilters } from '@/services/mcube';
+import { mcubeService, CallRecord, CallFilters } from '../services/mcube';
 import { toast } from 'sonner';
 
 interface UseMcubeCallsOptions {
@@ -22,23 +22,27 @@ export function useMcubeCalls(options: UseMcubeCallsOptions = {}) {
   // Stats derived from call data
   const [stats, setStats] = useState({
     totalCalls: 0,
+    inboundCalls: 0,
+    outboundCalls: 0,
     totalTalkTime: 0,
-    uniqueContacts: 0,
-    sentimentDistribution: { positive: 0, neutral: 0, negative: 0 },
-    topKeywords: [] as { text: string; value: number }[],
-    monthlyData: [] as { month: string; calls: number }[],
-    admissionsInquiries: 0
+    avgCallDuration: 0,
+    callsByStatus: {} as Record<string, number>,
+    callsByGroup: {} as Record<string, number>,
+    sentimentDistribution: {
+      positive: 0,
+      neutral: 0,
+      negative: 0
+    }
   });
 
   // Function to fetch calls
-  const fetchCalls = useCallback(() => {
+  const fetchCalls = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       
       // Get calls from the service with any filters
       const callData = mcubeService.getCalls(filters);
-      
       setCalls(callData);
       
       // Call the onDataUpdate callback if provided
@@ -96,14 +100,43 @@ export function useMcubeCalls(options: UseMcubeCallsOptions = {}) {
 
   // Calculate stats from call data
   const calculateStats = useCallback((callData: CallRecord[]) => {
-    // Total calls
+    if (!callData.length) {
+      setStats({
+        totalCalls: 0,
+        inboundCalls: 0,
+        outboundCalls: 0,
+        totalTalkTime: 0,
+        avgCallDuration: 0,
+        callsByStatus: {},
+        callsByGroup: {},
+        sentimentDistribution: { positive: 0, neutral: 0, negative: 0 }
+      });
+      return;
+    }
+
     const totalCalls = callData.length;
+    const inboundCalls = callData.filter(call => call.direction === 'inbound').length;
+    const outboundCalls = callData.filter(call => call.direction === 'outbound').length;
     
     // Total talk time (in seconds)
     const totalTalkTime = callData.reduce((total, call) => total + (call.duration || 0), 0);
     
-    // Unique contacts
-    const uniqueContacts = new Set(callData.map(call => call.customerPhone)).size;
+    // Average call duration
+    const avgCallDuration = totalCalls > 0 ? totalTalkTime / totalCalls : 0;
+    
+    // Count calls by status
+    const callsByStatus = callData.reduce((acc, call) => {
+      const status = call.status || 'Unknown';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    // Count calls by group
+    const callsByGroup = callData.reduce((acc, call) => {
+      const group = call.groupName || 'Unknown';
+      acc[group] = (acc[group] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
     
     // Sentiment distribution
     const sentimentDistribution = {
@@ -112,58 +145,15 @@ export function useMcubeCalls(options: UseMcubeCallsOptions = {}) {
       negative: callData.filter(call => call.sentiment?.toLowerCase() === 'negative').length
     };
     
-    // Count keywords
-    const keywordCounts = new Map<string, number>();
-    callData.forEach(call => {
-      call.keywords?.forEach(keyword => {
-        const count = keywordCounts.get(keyword) || 0;
-        keywordCounts.set(keyword, count + 1);
-      });
-    });
-    
-    // Sort keywords by count
-    const topKeywords = Array.from(keywordCounts.entries())
-      .map(([text, value]) => ({ text, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 10);
-    
-    // Group calls by month
-    const monthlyCallMap = new Map<string, number>();
-    callData.forEach(call => {
-      const date = new Date(call.startTime);
-      const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-      const count = monthlyCallMap.get(monthYear) || 0;
-      monthlyCallMap.set(monthYear, count + 1);
-    });
-    
-    // Sort months chronologically
-    const monthlyData = Array.from(monthlyCallMap.entries())
-      .map(([month, calls]) => ({ month, calls }))
-      .sort((a, b) => a.month.localeCompare(b.month));
-    
-    // Count admissions inquiries (based on keywords)
-    const admissionKeywords = ['admission', 'enroll', 'application', 'apply'];
-    const admissionsInquiries = callData.filter(call => {
-      // Check transcription and keywords for admission-related terms
-      const transcriptionText = call.transcription?.toLowerCase() || '';
-      return (
-        admissionKeywords.some(keyword => transcriptionText.includes(keyword)) ||
-        call.keywords?.some(keyword => 
-          admissionKeywords.some(admissionKeyword => 
-            keyword.toLowerCase().includes(admissionKeyword)
-          )
-        )
-      );
-    }).length;
-    
     setStats({
       totalCalls,
+      inboundCalls,
+      outboundCalls,
       totalTalkTime,
-      uniqueContacts,
-      sentimentDistribution,
-      topKeywords,
-      monthlyData,
-      admissionsInquiries
+      avgCallDuration,
+      callsByStatus,
+      callsByGroup,
+      sentimentDistribution
     });
   }, []);
 
@@ -193,11 +183,11 @@ export function useMcubeCalls(options: UseMcubeCallsOptions = {}) {
   useEffect(() => {
     if (selectedCallId) {
       const call = mcubeService.getCallById(selectedCallId);
-      setSelectedCall(call || null);
+      setSelectedCall(call);
     } else {
       setSelectedCall(null);
     }
-  }, [selectedCallId, calls]);
+  }, [selectedCallId]);
 
   return {
     calls,

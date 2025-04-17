@@ -1,36 +1,34 @@
 
-import { McubeInboundCall, McubeOutboundCallRequest, McubeOutboundCallResponse, CallRecord, CallFilters } from './types';
+import { 
+  McubeInboundCall, 
+  McubeOutboundCallRequest, 
+  McubeOutboundCallResponse, 
+  CallRecord, 
+  CallFilters,
+  CallCampaign
+} from './types';
 import { toast } from 'sonner';
 
 // Constants
 const MCUBE_API_BASE_URL = 'https://api.mcube.com/Restmcube-api';
-const MCUBE_TOKEN = 'your-mcube-token'; // Retrieve from environment or secure storage
+const MCUBE_TOKEN_KEY = 'mcube_api_token';
 
 /**
  * MCube Service for handling inbound and outbound calls
  */
-export class McubeService {
-  private static instance: McubeService;
-  private token: string = '';
+class McubeService {
+  private token: string | null = null;
   private calls: CallRecord[] = [];
+  private campaigns: CallCampaign[] = [];
   private listeners: ((calls: CallRecord[]) => void)[] = [];
+  private campaignListeners: ((campaigns: CallCampaign[]) => void)[] = [];
 
-  private constructor() {
-    // Initialize with token
-    this.token = MCUBE_TOKEN;
+  constructor() {
+    // Initialize with token from storage
+    this.token = localStorage.getItem(MCUBE_TOKEN_KEY);
     
     // Load mock data for development
     this.loadMockData();
-  }
-
-  /**
-   * Get singleton instance
-   */
-  public static getInstance(): McubeService {
-    if (!McubeService.instance) {
-      McubeService.instance = new McubeService();
-    }
-    return McubeService.instance;
   }
 
   /**
@@ -38,18 +36,29 @@ export class McubeService {
    */
   public setToken(token: string): void {
     this.token = token;
+    localStorage.setItem(MCUBE_TOKEN_KEY, token);
+    toast.success('MCUBE API token has been set');
   }
 
   /**
    * Get the current authentication token
    */
-  public getToken(): string {
+  public getToken(): string | null {
     return this.token;
   }
 
   /**
+   * Clear the authentication token
+   */
+  public clearToken(): void {
+    this.token = null;
+    localStorage.removeItem(MCUBE_TOKEN_KEY);
+    toast.info('MCUBE API token has been cleared');
+  }
+
+  /**
    * Process an inbound call from webhook
-   * This method would be called by a backend API endpoint that processes incoming MCUBE webhooks
+   * This would be called by a backend API endpoint that processes MCUBE webhooks
    */
   public processInboundCall(callData: McubeInboundCall): CallRecord {
     console.log('Processing inbound call data:', callData);
@@ -64,8 +73,10 @@ export class McubeService {
       agentPhone: callData.emp_phone,
       agentName: callData.agentname,
       customerPhone: callData.callto,
+      didNumber: callData.clicktocalldid,
       recordingUrl: callData.filename,
       disconnectedBy: callData.disconnectedby,
+      answeredTime: callData.answeredtime,
       groupName: callData.groupname,
       // Calculate duration if both start and end times are available
       duration: this.calculateDuration(callData.starttime, callData.endtime),
@@ -86,15 +97,6 @@ export class McubeService {
 
   /**
    * Make an outbound call using the MCUBE API
-   * Following the format from documentation:
-   * curl --location 'https://api.mcube.com/Restmcube-api/outbound-calls' \
-   * --header 'Content-Type: application/json' \
-   * --data '{
-   *     "HTTP_AUTHORIZATION":"Token",
-   *     "exenumber": "Executive Number",
-   *     "custnumber": "Customer Number",
-   *     "refurl": "https://api.mcube.com/Restmcube-api/outbound-calls"
-   * }'
    */
   public async makeOutboundCall(
     agentPhone: string, 
@@ -117,12 +119,12 @@ export class McubeService {
         HTTP_AUTHORIZATION: this.token,
         exenumber: agentPhone,
         custnumber: customerPhone,
-        refurl: `${MCUBE_API_BASE_URL}/outbound-calls`, // This should be your callback URL
+        refurl: `${window.location.origin}/api/mcube-callback`, // This should be your callback URL
         refid: refId
       };
 
       // In production, make the actual API call
-      // For now, we'll use a conditional to determine if we're in development mode
+      // For development, we'll simulate a successful call
       if (process.env.NODE_ENV === 'production') {
         try {
           const response = await fetch(`${MCUBE_API_BASE_URL}/outbound-calls`, {
@@ -200,10 +202,11 @@ export class McubeService {
           const updatedCall: CallRecord = {
             ...mockCallRecord,
             status: 'ANSWER',
-            duration: 15, // 15 seconds
-            endTime: new Date(new Date(startTime).getTime() + 15000).toISOString(),
+            duration: 45, // 45 seconds
+            endTime: new Date(new Date(startTime).getTime() + 45000).toISOString(),
             sentiment: Math.random() > 0.3 ? 'Positive' : 'Neutral',
             disconnectedBy: Math.random() > 0.5 ? 'Agent' : 'Customer',
+            recordingUrl: 'https://example.com/mock-recording.wav',
           };
           
           this.storeCall(updatedCall);
@@ -212,7 +215,7 @@ export class McubeService {
           // Show toast notification
           toast.success('Call completed successfully');
           
-        }, 15000); // After 15 seconds
+        }, 5000); // After 5 seconds
         
         // Notify listeners immediately with initial call data
         this.notifyListeners();
@@ -248,6 +251,14 @@ export class McubeService {
         filteredCalls = filteredCalls.filter(call => call.direction === filters.direction);
       }
       
+      if (filters.status) {
+        filteredCalls = filteredCalls.filter(call => call.status === filters.status);
+      }
+      
+      if (filters.groupName) {
+        filteredCalls = filteredCalls.filter(call => call.groupName === filters.groupName);
+      }
+      
       if (filters.startDate) {
         const startDate = new Date(filters.startDate);
         filteredCalls = filteredCalls.filter(call => new Date(call.startTime) >= startDate);
@@ -272,8 +283,8 @@ export class McubeService {
   /**
    * Get a specific call by ID
    */
-  public getCallById(callId: string): CallRecord | undefined {
-    return this.calls.find(call => call.id === callId);
+  public getCallById(callId: string): CallRecord | null {
+    return this.calls.find(call => call.id === callId) || null;
   }
 
   /**
@@ -283,11 +294,53 @@ export class McubeService {
     this.listeners.push(callback);
     
     // Immediately provide current data
-    callback(this.calls);
+    callback(this.getCalls());
     
     // Return unsubscribe function
     return () => {
       this.listeners = this.listeners.filter(listener => listener !== callback);
+    };
+  }
+
+  /**
+   * Get all campaigns
+   */
+  public getCampaigns(): CallCampaign[] {
+    return [...this.campaigns].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  /**
+   * Create a new campaign
+   */
+  public createCampaign(campaign: Omit<CallCampaign, 'id' | 'createdAt' | 'updatedAt'>): CallCampaign {
+    const now = new Date().toISOString();
+    const newCampaign: CallCampaign = {
+      ...campaign,
+      id: `campaign-${Date.now()}`,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.campaigns.push(newCampaign);
+    this.notifyCampaignListeners();
+    
+    return newCampaign;
+  }
+
+  /**
+   * Subscribe to campaign updates
+   */
+  public subscribeToCampaignUpdates(callback: (campaigns: CallCampaign[]) => void): () => void {
+    this.campaignListeners.push(callback);
+    
+    // Immediately provide current data
+    callback(this.getCampaigns());
+    
+    // Return unsubscribe function
+    return () => {
+      this.campaignListeners = this.campaignListeners.filter(listener => listener !== callback);
     };
   }
 
@@ -308,10 +361,17 @@ export class McubeService {
   }
 
   /**
-   * Notify all listeners of changes
+   * Notify all call listeners of changes
    */
   private notifyListeners(): void {
     this.listeners.forEach(listener => listener(this.getCalls()));
+  }
+
+  /**
+   * Notify all campaign listeners of changes
+   */
+  private notifyCampaignListeners(): void {
+    this.campaignListeners.forEach(listener => listener(this.getCampaigns()));
   }
 
   /**
@@ -330,76 +390,145 @@ export class McubeService {
    * Load mock data for development purposes
    */
   private loadMockData(): void {
+    // Mock call data
     const mockCalls: CallRecord[] = [
       {
-        id: 'mock-1',
-        startTime: '2025-04-15T10:30:00Z',
-        endTime: '2025-04-15T10:45:00Z',
+        id: 'mcube-1',
+        startTime: '2025-04-16T10:30:00Z',
+        endTime: '2025-04-16T10:45:00Z',
         duration: 900,
         direction: 'inbound',
         status: 'ANSWER',
         agentPhone: '8767316316',
-        agentName: 'John Doe',
-        customerPhone: '7816999444',
+        agentName: 'John Smith',
+        customerPhone: '5551234567',
+        didNumber: '8035053336',
         recordingUrl: 'https://example.com/recording-1.wav',
         disconnectedBy: 'Customer',
-        groupName: 'Integration',
+        answeredTime: '00:00:03',
+        groupName: 'Inbound',
         sentiment: 'Positive',
-        transcription: 'This is a mock transcription of a positive call about enrollment.',
-        keywords: ['enrollment', 'application', 'deadline'],
-        contactName: 'Sarah Student',
-        companyName: 'State University',
-        success: true
+        transcription: 'Hello, I need information about your product. Could you please tell me more about the features?',
+        keywords: ['information', 'product', 'features'],
       },
       {
-        id: 'mock-2',
-        startTime: '2025-04-15T11:15:00Z',
-        endTime: '2025-04-15T11:20:00Z',
-        duration: 300,
+        id: 'mcube-2',
+        startTime: '2025-04-16T11:15:00Z',
+        endTime: '2025-04-16T11:25:00Z',
+        duration: 600,
         direction: 'outbound',
         status: 'ANSWER',
-        agentPhone: '8767316316',
-        agentName: 'John Doe',
-        customerPhone: '5551234567',
+        agentPhone: '8767316317',
+        agentName: 'Jane Williams',
+        customerPhone: '5559876543',
         recordingUrl: 'https://example.com/recording-2.wav',
         disconnectedBy: 'Agent',
-        groupName: 'Outreach',
+        answeredTime: '00:00:05',
+        groupName: 'Autodialer',
         sentiment: 'Neutral',
-        transcription: 'This is a mock transcription about financial aid information.',
-        keywords: ['financial aid', 'scholarship', 'FAFSA'],
-        contactName: 'Michael Applicant',
-        companyName: 'High School',
-        success: true
+        transcription: 'I\'m calling to follow up on our previous conversation about our new service offering.',
+        keywords: ['follow up', 'service', 'offering'],
       },
       {
-        id: 'mock-3',
-        startTime: '2025-04-16T09:00:00Z',
-        endTime: '2025-04-16T09:05:00Z',
+        id: 'mcube-3',
+        startTime: '2025-04-16T14:00:00Z',
+        endTime: '2025-04-16T14:02:00Z',
+        duration: 120,
+        direction: 'inbound',
+        status: 'ANSWER',
+        agentPhone: '8767316318',
+        agentName: 'Robert Johnson',
+        customerPhone: '5555551234',
+        didNumber: '8035053336',
+        recordingUrl: 'https://example.com/recording-3.wav',
+        disconnectedBy: 'Customer',
+        answeredTime: '00:00:02',
+        groupName: 'Inbound',
+        sentiment: 'Negative',
+        transcription: 'I\'ve been waiting for a callback for days. This is unacceptable customer service.',
+        keywords: ['waiting', 'callback', 'unacceptable', 'customer service'],
+      },
+      {
+        id: 'mcube-4',
+        startTime: '2025-04-16T16:30:00Z',
+        endTime: '2025-04-16T16:40:00Z',
+        duration: 600,
+        direction: 'outbound',
+        status: 'ANSWER',
+        agentPhone: '8767316317',
+        agentName: 'Jane Williams',
+        customerPhone: '5552223333',
+        recordingUrl: 'https://example.com/recording-4.wav',
+        disconnectedBy: 'Agent',
+        answeredTime: '00:00:04',
+        groupName: 'Autodialer',
+        sentiment: 'Positive',
+        transcription: 'Thank you for your interest in our premium plan. I can help you set that up today.',
+        keywords: ['premium', 'plan', 'setup'],
+      },
+      {
+        id: 'mcube-5',
+        startTime: '2025-04-17T09:15:00Z',
+        endTime: '2025-04-17T09:20:00Z',
         duration: 300,
         direction: 'inbound',
         status: 'ANSWER',
-        agentPhone: '8767316317',
-        agentName: 'Jane Smith',
-        customerPhone: '5559876543',
-        recordingUrl: 'https://example.com/recording-3.wav',
-        disconnectedBy: 'Customer',
-        groupName: 'Support',
-        sentiment: 'Negative',
-        transcription: 'This is a mock transcription of a complaint about application process.',
-        keywords: ['application', 'problem', 'website'],
-        contactName: 'Chris Parent',
-        companyName: 'Parent Association',
-        success: false
+        agentPhone: '8767316316',
+        agentName: 'John Smith',
+        customerPhone: '5554443333',
+        didNumber: '8035053336',
+        recordingUrl: 'https://example.com/recording-5.wav',
+        disconnectedBy: 'Agent',
+        answeredTime: '00:00:02',
+        groupName: 'Inbound',
+        sentiment: 'Neutral',
+        transcription: 'I\'m calling to check the status of my order #12345. Can you help me with that?',
+        keywords: ['status', 'order', 'check'],
       }
     ];
     
-    // Add mock calls to our storage
+    // Add calls to our storage
     mockCalls.forEach(call => this.storeCall(call));
+
+    // Add mock campaigns
+    this.campaigns = [
+      {
+        id: 'campaign-1',
+        name: 'Spring Promotion',
+        description: 'Outreach for our spring promotion',
+        startDate: '2025-04-15T00:00:00Z',
+        endDate: '2025-05-15T00:00:00Z',
+        status: 'active',
+        contacts: [
+          {
+            id: 'contact-1',
+            name: 'John Doe',
+            phoneNumber: '5551234567',
+            email: 'john@example.com',
+            company: 'ABC Corp',
+            status: 'contacted',
+            callId: 'mcube-2',
+            notes: 'Left a voicemail'
+          },
+          {
+            id: 'contact-2',
+            name: 'Jane Smith',
+            phoneNumber: '5559876543',
+            email: 'jane@example.com',
+            company: 'XYZ Inc',
+            status: 'pending',
+          }
+        ],
+        script: 'Hello, this is [Agent Name] from MCUBE. We're reaching out about our spring promotion...',
+        createdAt: '2025-04-10T10:00:00Z',
+        updatedAt: '2025-04-10T10:00:00Z',
+      }
+    ];
   }
 }
 
-// Export a singleton instance
-export const mcubeService = McubeService.getInstance();
+// Export singleton instance
+export const mcubeService = new McubeService();
 
 // Export types for easier access
 export * from './types';

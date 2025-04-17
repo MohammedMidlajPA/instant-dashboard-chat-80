@@ -3,12 +3,11 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
-import { SentimentBadge } from "@/components/CallRecordings/SentimentBadge";
+import { AlertCircle, CheckCircle, XCircle, Phone, PhoneIncoming, PhoneOutgoing } from "lucide-react";
 import { CallRecord } from "@/services/mcube";
 
 interface McubeCallDetailsProps {
-  callId: string;
+  callId: string | null;
   call: CallRecord | null;
   isLoading: boolean;
   error: Error | null;
@@ -23,7 +22,7 @@ export const McubeCallDetails: React.FC<McubeCallDetailsProps> = ({
   if (!callId) {
     return (
       <Card>
-        <CardContent className="p-8 text-center text-gray-500">
+        <CardContent className="p-8 text-center text-muted-foreground">
           <p>Select a call to view details</p>
         </CardContent>
       </Card>
@@ -69,98 +68,171 @@ export const McubeCallDetails: React.FC<McubeCallDetailsProps> = ({
   if (!call) {
     return (
       <Card>
-        <CardContent className="p-8 text-center text-gray-500">
+        <CardContent className="p-8 text-center text-muted-foreground">
           <p>No call details found</p>
         </CardContent>
       </Card>
     );
   }
 
-  // Prepare data for display
-  const contactName = call.contactName || "Unknown Caller";
-  const callDate = call.startTime 
-    ? new Date(call.startTime).toLocaleString()
-    : "Unknown date";
+  // Format phone numbers
+  const customerPhone = call.customerPhone || "Unknown";
+  const agentPhone = call.agentPhone || "Unknown";
+  
+  // Format times and duration
+  const startTime = new Date(call.startTime).toLocaleString();
+  const endTime = call.endTime ? new Date(call.endTime).toLocaleString() : "N/A";
   const duration = call.duration 
     ? `${Math.floor(call.duration / 60)}m ${call.duration % 60}s` 
     : "Unknown";
-  const transcript = call.transcription || "No transcript available";
   
-  // Determine call success
-  const callSuccessful = call.success ?? (call.sentiment?.toLowerCase() === "positive");
+  // Check if call was successful (based on status)
+  const callSuccessful = call.status === "ANSWER" || call.status === "COMPLETED";
+  
+  // Determine sentiment color
+  const getSentimentClass = (sentiment?: string) => {
+    if (!sentiment) return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+    
+    sentiment = sentiment.toLowerCase();
+    if (sentiment === "positive") 
+      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+    if (sentiment === "negative") 
+      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+    
+    return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+  };
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex justify-between">
-          <span>Call with {contactName}</span>
-          {callSuccessful !== null && (
-            <span className={callSuccessful ? "text-green-600" : "text-amber-600"}>
-              {callSuccessful 
-                ? <CheckCircle className="h-5 w-5 inline-block mr-1" /> 
-                : <XCircle className="h-5 w-5 inline-block mr-1" />}
-              {callSuccessful ? "Successful" : "Needs Follow-up"}
-            </span>
-          )}
+        <CardTitle className="flex justify-between items-center">
+          <div className="flex items-center">
+            {call.direction === 'inbound' ? (
+              <PhoneIncoming className="h-5 w-5 mr-2 text-blue-500" />
+            ) : (
+              <PhoneOutgoing className="h-5 w-5 mr-2 text-green-500" />
+            )}
+            <span>Call with {customerPhone}</span>
+          </div>
+          <div>
+            {callSuccessful !== null && (
+              <span className={callSuccessful ? "text-green-600" : "text-amber-600"}>
+                {callSuccessful 
+                  ? <CheckCircle className="h-5 w-5 inline-block mr-1" /> 
+                  : <XCircle className="h-5 w-5 inline-block mr-1" />}
+                {callSuccessful ? "Completed" : "Not Completed"}
+              </span>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <div>
-            <p className="text-sm text-gray-500">Date/Time</p>
-            <p className="font-medium">{callDate}</p>
+            <p className="text-sm text-muted-foreground">Start Time</p>
+            <p className="font-medium">{startTime}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Duration</p>
+            <p className="text-sm text-muted-foreground">End Time</p>
+            <p className="font-medium">{endTime}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Duration</p>
             <p className="font-medium">{duration}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Direction</p>
+            <p className="text-sm text-muted-foreground">Direction</p>
             <p className="font-medium capitalize">{call.direction}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Sentiment</p>
-            <SentimentBadge type={call.sentiment || "Neutral"} />
           </div>
         </div>
 
-        <Tabs defaultValue="transcript">
+        <Tabs defaultValue="details">
           <TabsList className="mb-4">
-            <TabsTrigger value="transcript">Transcript</TabsTrigger>
-            <TabsTrigger value="keywords">Keywords & Topics</TabsTrigger>
-            {call.recordingUrl && <TabsTrigger value="recording">Recording</TabsTrigger>}
             <TabsTrigger value="details">Call Details</TabsTrigger>
+            {call.transcription && <TabsTrigger value="transcript">Transcript</TabsTrigger>}
+            {call.recordingUrl && <TabsTrigger value="recording">Recording</TabsTrigger>}
           </TabsList>
           
-          <TabsContent value="transcript">
-            <div className="bg-gray-50 p-4 rounded-md text-sm whitespace-pre-line">
-              {transcript}
+          <TabsContent value="details">
+            <div className="bg-muted/50 p-4 rounded-md">
+              <h3 className="text-sm font-medium mb-3">MCUBE Call Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Call ID:</span>
+                  <span className="ml-2">{call.id}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Status:</span>
+                  <span className="ml-2">{call.status}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Agent Phone:</span>
+                  <span className="ml-2">{agentPhone}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Agent Name:</span>
+                  <span className="ml-2">{call.agentName || "Unknown"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Customer Phone:</span>
+                  <span className="ml-2">{customerPhone}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">DID Number:</span>
+                  <span className="ml-2">{call.didNumber || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Disconnected By:</span>
+                  <span className="ml-2">{call.disconnectedBy || "Unknown"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Call Group:</span>
+                  <span className="ml-2">{call.groupName || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Sentiment:</span>
+                  <span className={`ml-2 px-2 py-0.5 rounded text-xs ${getSentimentClass(call.sentiment)}`}>
+                    {call.sentiment || "Neutral"}
+                  </span>
+                </div>
+                {call.answeredTime && (
+                  <div>
+                    <span className="text-muted-foreground">Answer Time:</span>
+                    <span className="ml-2">{call.answeredTime}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </TabsContent>
           
-          <TabsContent value="keywords">
-            {call.keywords && call.keywords.length > 0 ? (
-              <div>
-                <h3 className="text-sm font-medium mb-2">Key Topics</h3>
-                <div className="flex flex-wrap gap-2">
-                  {call.keywords.map((keyword, idx) => (
-                    <span 
-                      key={idx} 
-                      className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm"
-                    >
-                      {keyword}
-                    </span>
-                  ))}
-                </div>
+          {call.transcription && (
+            <TabsContent value="transcript">
+              <div className="bg-muted/50 p-4 rounded-md text-sm whitespace-pre-line">
+                <h3 className="text-sm font-medium mb-2">Call Transcript</h3>
+                <p>{call.transcription}</p>
+                
+                {call.keywords && call.keywords.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium mb-2">Keywords</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {call.keywords.map((keyword, idx) => (
+                        <span 
+                          key={idx} 
+                          className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <p className="text-gray-500">No keywords or topics detected for this call</p>
-            )}
-          </TabsContent>
+            </TabsContent>
+          )}
           
           {call.recordingUrl && (
             <TabsContent value="recording">
-              <div className="p-4 rounded-md bg-gray-50">
+              <div className="bg-muted/50 p-4 rounded-md">
                 <h3 className="text-sm font-medium mb-2">Call Recording</h3>
                 <audio controls className="w-full" src={call.recordingUrl}>
                   Your browser does not support the audio element.
@@ -168,46 +240,6 @@ export const McubeCallDetails: React.FC<McubeCallDetailsProps> = ({
               </div>
             </TabsContent>
           )}
-          
-          <TabsContent value="details">
-            <div className="bg-gray-50 p-4 rounded-md">
-              <h3 className="text-sm font-medium mb-3">Additional Call Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Call ID:</span>
-                  <span className="ml-2">{call.id}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Status:</span>
-                  <span className="ml-2">{call.status}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Agent Phone:</span>
-                  <span className="ml-2">{call.agentPhone}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Agent Name:</span>
-                  <span className="ml-2">{call.agentName || "Unknown"}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Customer Phone:</span>
-                  <span className="ml-2">{call.customerPhone}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Company:</span>
-                  <span className="ml-2">{call.companyName || "Unknown"}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Disconnected By:</span>
-                  <span className="ml-2">{call.disconnectedBy || "Unknown"}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Group:</span>
-                  <span className="ml-2">{call.groupName || "N/A"}</span>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
