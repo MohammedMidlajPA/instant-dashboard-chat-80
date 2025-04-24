@@ -3,7 +3,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { FileUpload } from "lucide-react"
+import { FileUp } from "lucide-react"
 import { toast } from "sonner"
 
 interface ContactCsvUploaderProps {
@@ -45,7 +45,7 @@ export function ContactCsvUploader({ onSuccess, onCancel }: ContactCsvUploaderPr
       <div className="flex items-center justify-center w-full">
         <label htmlFor="csv-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            <FileUpload className="w-8 h-8 mb-2 text-gray-500" />
+            <FileUp className="w-8 h-8 mb-2 text-gray-500" />
             <p className="mb-2 text-sm text-gray-500">
               <span className="font-semibold">Click to upload</span> or drag and drop
             </p>
