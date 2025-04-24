@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +7,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight, ChevronLeft, Calendar, Clock } from "lucide-react";
 import { CsvUploader } from "./CsvUploader";
+import { ManualContactForm } from "./ManualContactForm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { mcubeService } from "@/services/mcube";
 
 interface CampaignFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+}
+
+interface Contact {
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  email: string;
 }
 
 export const CampaignForm: React.FC<CampaignFormProps> = ({ 
@@ -25,6 +33,8 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [csvColumns, setCsvColumns] = useState<string[]>([]);
+  const [manualContacts, setManualContacts] = useState<Contact[]>([]);
+  const [contactMethod, setContactMethod] = useState<'csv' | 'manual'>('csv');
   
   // Campaign details
   const [name, setName] = useState("");
@@ -41,36 +51,51 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
   const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [maxConcurrentCalls, setMaxConcurrentCalls] = useState(5);
-  
-  const nextStep = () => {
-    if (step === 1 && !name) {
-      toast.error("Campaign name is required");
-      return;
-    }
-    
-    if (step === 2 && !phoneColumn) {
-      toast.error("Phone number column mapping is required");
-      return;
-    }
-    
-    setStep(prev => prev + 1);
+
+  const handleManualContactAdd = (contact: Contact) => {
+    setManualContacts(prev => [...prev, contact]);
+    toast.success("Contact added successfully");
   };
   
-  const prevStep = () => {
-    setStep(prev => prev - 1);
+  const handleCsvUpload = (data: any[]) => {
+    setCsvData(data);
   };
   
-  const handleSubmit = async () => {
-    if (!name || !phoneColumn || csvData.length === 0) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
+  const handleColumnsDetected = (columns: string[]) => {
+    setCsvColumns(columns);
+    // Try to auto-detect column mappings
+    const phoneCol = columns.find(col => 
+      col.toLowerCase().includes('phone') || 
+      col.toLowerCase() === 'mobile' || 
+      col.toLowerCase() === 'cell'
+    );
     
-    try {
-      setIsSubmitting(true);
-      
-      // Process contacts from CSV data
-      const contacts = csvData.map(row => {
+    const firstNameCol = columns.find(col => 
+      col.toLowerCase().includes('first') || 
+      col.toLowerCase() === 'firstname' || 
+      col.toLowerCase() === 'fname'
+    );
+    
+    const lastNameCol = columns.find(col => 
+      col.toLowerCase().includes('last') || 
+      col.toLowerCase() === 'lastname' || 
+      col.toLowerCase() === 'lname'
+    );
+    
+    const emailCol = columns.find(col => 
+      col.toLowerCase().includes('email') || 
+      col.toLowerCase() === 'e-mail'
+    );
+    
+    if (phoneCol) setPhoneColumn(phoneCol);
+    if (firstNameCol) setFirstNameColumn(firstNameCol);
+    if (lastNameCol) setLastNameColumn(lastNameCol);
+    if (emailCol) setEmailColumn(emailCol);
+  };
+
+  const processContacts = () => {
+    if (contactMethod === 'csv') {
+      return csvData.map(row => {
         const contact: any = {
           phone_number: row[phoneColumn],
         };
@@ -79,7 +104,6 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
         if (lastNameColumn) contact.last_name = row[lastNameColumn];
         if (emailColumn) contact.email = row[emailColumn];
         
-        // Add any additional data as metadata
         const metadata: any = {};
         Object.keys(row).forEach(key => {
           if (key !== phoneColumn && key !== firstNameColumn && key !== lastNameColumn && key !== emailColumn) {
@@ -93,6 +117,31 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
         
         return contact;
       });
+    } else {
+      return manualContacts.map(contact => ({
+        phone_number: contact.phoneNumber,
+        first_name: contact.firstName,
+        last_name: contact.lastName,
+        email: contact.email
+      }));
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!name || (!phoneColumn && contactMethod === 'csv') || (manualContacts.length === 0 && contactMethod === 'manual')) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      const contacts = processContacts();
+      
+      if (contacts.length === 0) {
+        toast.error("Please add at least one contact");
+        return;
+      }
       
       // Create payload
       const payload: any = {
@@ -123,44 +172,7 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
       setIsSubmitting(false);
     }
   };
-  
-  const handleCsvUpload = (data: any[]) => {
-    setCsvData(data);
-  };
-  
-  const handleColumnsDetected = (columns: string[]) => {
-    setCsvColumns(columns);
-    
-    // Try to auto-detect column mappings
-    const phoneCol = columns.find(col => 
-      col.toLowerCase().includes('phone') || 
-      col.toLowerCase() === 'mobile' || 
-      col.toLowerCase() === 'cell'
-    );
-    
-    const firstNameCol = columns.find(col => 
-      col.toLowerCase().includes('first') || 
-      col.toLowerCase() === 'firstname' || 
-      col.toLowerCase() === 'fname'
-    );
-    
-    const lastNameCol = columns.find(col => 
-      col.toLowerCase().includes('last') || 
-      col.toLowerCase() === 'lastname' || 
-      col.toLowerCase() === 'lname'
-    );
-    
-    const emailCol = columns.find(col => 
-      col.toLowerCase().includes('email') || 
-      col.toLowerCase() === 'e-mail'
-    );
-    
-    if (phoneCol) setPhoneColumn(phoneCol);
-    if (firstNameCol) setFirstNameColumn(firstNameCol);
-    if (lastNameCol) setLastNameColumn(lastNameCol);
-    if (emailCol) setEmailColumn(emailCol);
-  };
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -204,20 +216,32 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
                 rows={3}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Student Contact List</Label>
-              <CsvUploader 
-                onUpload={handleCsvUpload}
-                onColumnsDetected={handleColumnsDetected}
-              />
-              {csvData.length > 0 && (
-                <p className="text-sm text-green-600">{csvData.length} contacts loaded</p>
-              )}
-            </div>
+            
+            <Tabs value={contactMethod} onValueChange={(value) => setContactMethod(value as 'csv' | 'manual')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="csv">Upload CSV</TabsTrigger>
+                <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+              </TabsList>
+              <TabsContent value="csv" className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Contact List (CSV)</Label>
+                  <CsvUploader 
+                    onUpload={handleCsvUpload}
+                    onColumnsDetected={handleColumnsDetected}
+                  />
+                </div>
+              </TabsContent>
+              <TabsContent value="manual">
+                <ManualContactForm 
+                  onAdd={handleManualContactAdd}
+                  contacts={manualContacts}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         )}
         
-        {step === 2 && (
+        {step === 2 && contactMethod === 'csv' && (
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Map CSV Columns</h3>
             <div className="space-y-2">
@@ -371,35 +395,39 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
             
             <div className="pt-4">
               <h3 className="text-lg font-medium">Campaign Summary</h3>
-              <div className="mt-2 bg-gray-50 p-4 rounded-md">
+              <div className="mt-2 bg-gray-50 p-4 rounded-md dark:bg-gray-900">
                 <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Campaign Name</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{name}</dd>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Campaign Name</dt>
+                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{name}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Total Contacts</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{csvData.length}</dd>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Contacts</dt>
+                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                      {contactMethod === 'csv' ? csvData.length : manualContacts.length}
+                    </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Start Time</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Start Time</dt>
+                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                       {schedule && startDate && startTime ? 
                         new Date(`${startDate}T${startTime}`).toLocaleString() : 
                         "Immediately after creation"}
                     </dd>
                   </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Field Mappings</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      <ul className="list-disc pl-5 space-y-0.5">
-                        <li>Phone: {phoneColumn}</li>
-                        {firstNameColumn && <li>First Name: {firstNameColumn}</li>}
-                        {lastNameColumn && <li>Last Name: {lastNameColumn}</li>}
-                        {emailColumn && <li>Email: {emailColumn}</li>}
-                      </ul>
-                    </dd>
-                  </div>
+                  {contactMethod === 'csv' && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Field Mappings</dt>
+                      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                        <ul className="list-disc pl-5 space-y-0.5">
+                          <li>Phone: {phoneColumn}</li>
+                          {firstNameColumn && <li>First Name: {firstNameColumn}</li>}
+                          {lastNameColumn && <li>Last Name: {lastNameColumn}</li>}
+                          {emailColumn && <li>Email: {emailColumn}</li>}
+                        </ul>
+                      </dd>
+                    </div>
+                  )}
                 </dl>
               </div>
             </div>
@@ -410,7 +438,7 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
         {step > 1 ? (
           <Button 
             variant="outline" 
-            onClick={prevStep}
+            onClick={() => setStep(prev => prev - 1)}
             disabled={isSubmitting}
           >
             <ChevronLeft className="h-4 w-4 mr-2" />
@@ -427,8 +455,13 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
         
         {step < 3 ? (
           <Button 
-            onClick={nextStep}
-            disabled={step === 1 && (csvData.length === 0 || !name)}
+            onClick={() => setStep(prev => prev + 1)}
+            disabled={
+              (step === 1 && ((contactMethod === 'csv' && csvData.length === 0) || 
+                             (contactMethod === 'manual' && manualContacts.length === 0) || 
+                             !name)) ||
+              (step === 2 && contactMethod === 'csv' && !phoneColumn)
+            }
           >
             Next
             <ChevronRight className="h-4 w-4 ml-2" />
