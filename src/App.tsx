@@ -7,7 +7,6 @@ import CallAnalytics from './pages/CallAnalytics';
 import SalesDashboard from './pages/SalesDashboard';
 import SalesPipeline from './pages/SalesPipeline';
 import Calendar from './pages/Calendar';
-import EnrollmentAnalytics from './pages/EnrollmentAnalytics';
 import Contacts from './pages/Contacts';
 import Campaigns from './pages/Campaigns';
 import OutboundCalling from './pages/OutboundCalling';
@@ -28,7 +27,6 @@ function App() {
         <Route path="/sales-dashboard" element={<SalesDashboard />} />
         <Route path="/sales-pipeline" element={<SalesPipeline />} />
         <Route path="/calendar" element={<Calendar />} />
-        <Route path="/enrollment-analytics" element={<EnrollmentAnalytics />} />
         <Route path="/contacts" element={<Contacts />} />
         <Route path="/campaigns" element={<Campaigns />} />
         <Route path="/outbound-calling" element={<OutboundCalling />} />

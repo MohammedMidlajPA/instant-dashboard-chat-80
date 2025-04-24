@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import {
   BarChart3,
@@ -51,11 +50,6 @@ const sidebarNavItems = [
     title: "Huerize AI Analytics",
     href: "/syntheon-dashboard",
     icon: <Sparkles className="mr-2 h-4 w-4" />,
-  },
-  {
-    title: "Enrollment Analytics",
-    href: "/enrollment-analytics",
-    icon: <BookOpen className="mr-2 h-4 w-4" />,
   },
   {
     title: "Contacts",
