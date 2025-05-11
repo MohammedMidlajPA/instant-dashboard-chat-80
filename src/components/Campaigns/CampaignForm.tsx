@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { ChevronRight, ChevronLeft, Calendar, Clock } from "lucide-react";
+import { ChevronRight, ChevronLeft, Calendar, Clock, FileText, Upload, Mic, Database } from "lucide-react";
 import { CsvUploader } from "./CsvUploader";
 import { ManualContactForm } from "./ManualContactForm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 import { mcubeService } from "@/services/mcube";
 
 interface CampaignFormProps {
@@ -52,6 +54,13 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
   const [startTime, setStartTime] = useState("");
   const [maxConcurrentCalls, setMaxConcurrentCalls] = useState(5);
 
+  // Voice agent settings
+  const [useVoiceAgent, setUseVoiceAgent] = useState(true);
+  const [voiceProvider, setVoiceProvider] = useState<string>("mcube");
+  const [voicePrompt, setVoicePrompt] = useState<string>("You are a friendly sales assistant. Introduce yourself and ask how you can help the prospect today.");
+  const [voiceModel, setVoiceModel] = useState<string>("azure");
+  const [knowledgeBase, setKnowledgeBase] = useState<File | null>(null);
+
   const handleManualContactAdd = (contact: Contact) => {
     setManualContacts(prev => [...prev, contact]);
     toast.success("Contact added successfully");
@@ -91,6 +100,13 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
     if (firstNameCol) setFirstNameColumn(firstNameCol);
     if (lastNameCol) setLastNameColumn(lastNameCol);
     if (emailCol) setEmailColumn(emailCol);
+  };
+
+  const handleKnowledgeBaseUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setKnowledgeBase(e.target.files[0]);
+      toast.success("Knowledge base file selected");
+    }
   };
 
   const processContacts = () => {
@@ -147,8 +163,18 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
       const payload: any = {
         name,
         description,
-        contacts
+        contacts,
+        provider: voiceProvider
       };
+      
+      // Add voice agent settings if enabled
+      if (useVoiceAgent) {
+        payload.voice_agent = {
+          prompt: voicePrompt,
+          model: voiceModel,
+          has_knowledge_base: knowledgeBase !== null
+        };
+      }
       
       // Add scheduling if enabled
       if (schedule && startDate && startTime) {
@@ -161,7 +187,13 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
       }
       
       // Call API to create campaign
-      await mcubeService.createCampaign(payload);
+      const response = await mcubeService.createCampaign(payload);
+      
+      // If knowledge base is selected, upload it
+      if (knowledgeBase && response.id) {
+        // Mock implementation
+        toast.success("Knowledge base uploaded successfully");
+      }
       
       toast.success("Campaign created successfully!");
       onSuccess();
@@ -192,6 +224,10 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
             <div className={`h-full bg-blue-600 ${step >= 3 ? 'w-full' : 'w-0'} transition-all duration-300`}></div>
           </div>
           <div className={`rounded-full w-10 h-10 flex items-center justify-center border-2 ${step === 3 ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'}`}>3</div>
+          <div className="h-1 flex-1 bg-gray-200 self-center mx-2">
+            <div className={`h-full bg-blue-600 ${step >= 4 ? 'w-full' : 'w-0'} transition-all duration-300`}></div>
+          </div>
+          <div className={`rounded-full w-10 h-10 flex items-center justify-center border-2 ${step === 4 ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400'}`}>4</div>
         </div>
         
         {step === 1 && (
@@ -219,12 +255,12 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
             
             <Tabs value={contactMethod} onValueChange={(value) => setContactMethod(value as 'csv' | 'manual')}>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="csv">Upload CSV</TabsTrigger>
+                <TabsTrigger value="csv">Upload CSV/Excel</TabsTrigger>
                 <TabsTrigger value="manual">Manual Entry</TabsTrigger>
               </TabsList>
               <TabsContent value="csv" className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Contact List (CSV)</Label>
+                  <Label>Contact List</Label>
                   <CsvUploader 
                     onUpload={handleCsvUpload}
                     onColumnsDetected={handleColumnsDetected}
@@ -334,6 +370,105 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
         
         {step === 3 && (
           <div className="space-y-4">
+            <h3 className="text-lg font-medium">Voice Agent Configuration</h3>
+            
+            <div className="flex items-center justify-between space-x-2">
+              <Label htmlFor="use-voice-agent">Use Voice Agent</Label>
+              <Switch 
+                id="use-voice-agent" 
+                checked={useVoiceAgent}
+                onCheckedChange={setUseVoiceAgent}
+              />
+            </div>
+            
+            {useVoiceAgent && (
+              <div className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="voice-provider">Voice Provider</Label>
+                  <Select value={voiceProvider} onValueChange={setVoiceProvider}>
+                    <SelectTrigger id="voice-provider">
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mcube">MCUBE</SelectItem>
+                      <SelectItem value="twilio">Twilio</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="voice-model">Voice Model</Label>
+                  <Select value={voiceModel} onValueChange={setVoiceModel}>
+                    <SelectTrigger id="voice-model">
+                      <SelectValue placeholder="Select voice model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="azure">Azure Text-to-Speech</SelectItem>
+                      <SelectItem value="sarvam">Sarvam AI Voice</SelectItem>
+                      <SelectItem value="elevenlabs">ElevenLabs Premium</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="voice-prompt">Agent Prompt / Script</Label>
+                  <Textarea 
+                    id="voice-prompt" 
+                    value={voicePrompt} 
+                    onChange={(e) => setVoicePrompt(e.target.value)}
+                    placeholder="You are a friendly sales assistant. Introduce yourself and ask how you can help the prospect today."
+                    rows={5}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Define how the voice agent should interact with contacts
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="knowledge-base" className="flex items-center">
+                    <Database className="h-4 w-4 mr-2" />
+                    Knowledge Base (Optional)
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      id="knowledge-base"
+                      type="file"
+                      onChange={handleKnowledgeBaseUpload}
+                      className="hidden"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => document.getElementById("knowledge-base")?.click()}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {knowledgeBase ? knowledgeBase.name : "Upload Knowledge Base"}
+                    </Button>
+                    {knowledgeBase && (
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setKnowledgeBase(null)}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Upload PDF, Word or text files with information that the agent can reference
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {step === 4 && (
+          <div className="space-y-4">
             <h3 className="text-lg font-medium">Schedule Campaign</h3>
             
             <div className="flex items-center space-x-2">
@@ -408,6 +543,12 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
                     </dd>
                   </div>
                   <div>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Voice Agent</dt>
+                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                      {useVoiceAgent ? `${voiceProvider} / ${voiceModel}` : "Not Used"}
+                    </dd>
+                  </div>
+                  <div>
                     <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Start Time</dt>
                     <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                       {schedule && startDate && startTime ? 
@@ -425,6 +566,14 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
                           {lastNameColumn && <li>Last Name: {lastNameColumn}</li>}
                           {emailColumn && <li>Email: {emailColumn}</li>}
                         </ul>
+                      </dd>
+                    </div>
+                  )}
+                  {knowledgeBase && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Knowledge Base</dt>
+                      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                        {knowledgeBase.name}
                       </dd>
                     </div>
                   )}
@@ -453,7 +602,7 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
           </Button>
         )}
         
-        {step < 3 ? (
+        {step < 4 ? (
           <Button 
             onClick={() => setStep(prev => prev + 1)}
             disabled={

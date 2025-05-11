@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import {
   BarChart3,
@@ -42,8 +43,8 @@ const sidebarNavItems = [
     icon: <BarChart3 className="mr-2 h-4 w-4" />,
   },
   {
-    title: "MCUBE Dashboard",
-    href: "/mcube-dashboard",
+    title: "Telecom",
+    href: "/mcube-dashboard", // Keep the same route
     icon: <PhoneCall className="mr-2 h-4 w-4" />,
   },
   {
