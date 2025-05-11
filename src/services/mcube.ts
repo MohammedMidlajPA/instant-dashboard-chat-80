@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import * as mcubeTypes from "./mcube/types";
 
@@ -336,6 +335,43 @@ class McubeService {
 
   async getCallById(callId: string): Promise<mcubeTypes.CallRecord | null> {
     return this.getCallDetails(callId);
+  }
+
+  /**
+   * Analyze a call using Syntheon AI
+   */
+  async analyzeSyntheonCall(callId: string): Promise<mcubeTypes.CallRecord | null> {
+    try {
+      // First get the call details
+      const call = await this.getCallById(callId);
+      
+      if (!call) {
+        throw new Error("Call not found");
+      }
+      
+      // Mock analysis data
+      const enrichedCall: mcubeTypes.CallRecord = {
+        ...call,
+        analysis: {
+          successEvaluation: Math.random() > 0.5,
+          sentiment: Math.random() > 0.7 ? "positive" : Math.random() > 0.4 ? "neutral" : "negative",
+          keywords: [
+            "enrollment", "financial aid", "application", "deadlines", "campus tour"
+          ],
+          summary: "The caller inquired about application deadlines and financial aid options.",
+          actionItems: ["Send follow-up email", "Schedule campus tour"]
+        }
+      };
+      
+      // Store in cache to maintain consistency
+      const cacheKey = `call_details_${callId}`;
+      cache[cacheKey] = enrichedCall;
+      
+      return enrichedCall;
+    } catch (error) {
+      console.error('Error analyzing call:', error);
+      throw error;
+    }
   }
 }
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,14 @@ interface Contact {
   email: string;
 }
 
+interface ProviderConfig {
+  name: string;
+  apiKeyLabel: string;
+  apiKeyPlaceholder: string;
+  apiSecretLabel?: string;
+  apiSecretPlaceholder?: string;
+}
+
 const voiceOptions = {
   azure: [
     { id: "en-US-AriaNeural", name: "Aria (Female)" },
@@ -47,7 +54,7 @@ const voiceOptions = {
   ]
 };
 
-const providerConfigs = {
+const providerConfigs: Record<string, ProviderConfig> = {
   mcube: {
     name: "MCUBE",
     apiKeyLabel: "API Key",
@@ -303,37 +310,37 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              Set up {providerConfigs[voiceProvider as keyof typeof providerConfigs]?.name || "Provider"} API Key
+              Set up {providerConfigs[voiceProvider]?.name || "Provider"} API Key
             </DialogTitle>
             <DialogDescription>
-              Enter your API credentials to connect with {providerConfigs[voiceProvider as keyof typeof providerConfigs]?.name || "the provider"}.
+              Enter your API credentials to connect with {providerConfigs[voiceProvider]?.name || "the provider"}.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleTelecomApiSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="apiKey">
-                  {providerConfigs[voiceProvider as keyof typeof providerConfigs]?.apiKeyLabel || "API Key"}
+                  {providerConfigs[voiceProvider]?.apiKeyLabel || "API Key"}
                 </Label>
                 <Input
                   id="apiKey"
                   type="password"
-                  placeholder={providerConfigs[voiceProvider as keyof typeof providerConfigs]?.apiKeyPlaceholder || "Enter your API key"}
+                  placeholder={providerConfigs[voiceProvider]?.apiKeyPlaceholder || "Enter your API key"}
                   value={telecomApiKey}
                   onChange={(e) => setTelecomApiKey(e.target.value)}
                   required
                 />
               </div>
               
-              {providerConfigs[voiceProvider as keyof typeof providerConfigs]?.apiSecretLabel && (
+              {providerConfigs[voiceProvider]?.apiSecretLabel && (
                 <div className="grid gap-2">
                   <Label htmlFor="apiSecret">
-                    {providerConfigs[voiceProvider as keyof typeof providerConfigs]?.apiSecretLabel}
+                    {providerConfigs[voiceProvider]?.apiSecretLabel}
                   </Label>
                   <Input
                     id="apiSecret"
                     type="password"
-                    placeholder={providerConfigs[voiceProvider as keyof typeof providerConfigs]?.apiSecretPlaceholder}
+                    placeholder={providerConfigs[voiceProvider]?.apiSecretPlaceholder}
                     value={telecomApiSecret}
                     onChange={(e) => setTelecomApiSecret(e.target.value)}
                   />

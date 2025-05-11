@@ -1,7 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
-import { LineChart } from '@/components/ui/chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { mcubeService, CallRecord } from '@/services/mcube';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -113,7 +111,7 @@ const IndexPage = () => {
               <CardDescription>Call trends over the last 7 days</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
-              {/* Call volume chart would go here */}
+              {/* Replacing LineChart with a simple visualization since it doesn't exist */}
               <div className="h-full flex items-center justify-center text-muted-foreground">
                 Call volume chart visualization
               </div>
