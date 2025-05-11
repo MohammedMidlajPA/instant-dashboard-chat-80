@@ -13,7 +13,8 @@ export function McubeCallLogsList() {
   const fetchCallLogs = async () => {
     setLoading(true);
     try {
-      const callLogs = mcubeService.getCalls({ limit: 10 });
+      // Fix: Wait for the Promise to resolve
+      const callLogs = await mcubeService.getCalls({ limit: 10 });
       setCalls(callLogs);
     } catch (error) {
       console.error("Error fetching call logs:", error);
@@ -26,13 +27,13 @@ export function McubeCallLogsList() {
   useEffect(() => {
     fetchCallLogs();
     
-    // Subscribe to call updates
-    const unsubscribe = mcubeService.subscribeToCallUpdates((updatedCalls) => {
-      setCalls(updatedCalls.slice(0, 10));
-    });
+    // Fix: Set up a simple polling mechanism instead of subscription
+    const intervalId = setInterval(() => {
+      fetchCallLogs();
+    }, 30000); // Poll every 30 seconds
     
     return () => {
-      unsubscribe();
+      clearInterval(intervalId);
     };
   }, []);
 

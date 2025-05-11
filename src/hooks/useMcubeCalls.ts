@@ -42,7 +42,8 @@ export function useMcubeCalls(options: UseMcubeCallsOptions = {}) {
       setError(null);
       
       // Get calls from the service with any filters
-      const callData = mcubeService.getCalls(filters);
+      // Fix: Don't directly assign the Promise to state
+      const callData = await mcubeService.getCalls(filters);
       setCalls(callData);
       
       // Call the onDataUpdate callback if provided
@@ -79,14 +80,16 @@ export function useMcubeCalls(options: UseMcubeCallsOptions = {}) {
       
       const response = await mcubeService.makeOutboundCall(agentPhone, customerPhone, refId);
       
-      if (response.success) {
+      // Fix: Check for success property using optional chaining
+      if (response?.success) {
         toast.success('Call initiated successfully');
         // Refresh calls after initiating
         fetchCalls();
         return response;
       } else {
-        toast.error(response.message || 'Failed to initiate call');
-        throw new Error(response.message || 'Failed to initiate call');
+        // Fix: Check for message property using optional chaining
+        toast.error(response?.message || 'Failed to initiate call');
+        throw new Error(response?.message || 'Failed to initiate call');
       }
     } catch (err) {
       console.error('Error making call:', err);
@@ -164,29 +167,35 @@ export function useMcubeCalls(options: UseMcubeCallsOptions = {}) {
     // Initial fetch
     fetchCalls();
     
-    // Subscribe to call updates
-    const unsubscribe = mcubeService.subscribeToCallUpdates((updatedCalls) => {
-      setCalls(updatedCalls);
-      calculateStats(updatedCalls);
-      
-      if (onDataUpdate) {
-        onDataUpdate(updatedCalls);
-      }
-    });
+    // Fix: Create a simple polling mechanism instead of using subscriptions
+    // since subscribeToCallUpdates doesn't exist
+    const intervalId = setInterval(() => {
+      fetchCalls();
+    }, 30000); // Poll every 30 seconds
     
     return () => {
-      unsubscribe();
+      clearInterval(intervalId);
     };
-  }, [autoFetch, fetchCalls, calculateStats, onDataUpdate]);
+  }, [autoFetch, fetchCalls]);
 
   // Update selected call when ID changes
   useEffect(() => {
-    if (selectedCallId) {
-      const call = mcubeService.getCallById(selectedCallId);
-      setSelectedCall(call);
-    } else {
-      setSelectedCall(null);
-    }
+    const getSelectedCall = async () => {
+      if (selectedCallId) {
+        try {
+          // Fix: Don't directly assign Promise to state
+          const call = await mcubeService.getCallById(selectedCallId);
+          setSelectedCall(call);
+        } catch (err) {
+          console.error('Error fetching selected call:', err);
+          setSelectedCall(null);
+        }
+      } else {
+        setSelectedCall(null);
+      }
+    };
+    
+    getSelectedCall();
   }, [selectedCallId]);
 
   return {

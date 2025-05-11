@@ -1,193 +1,138 @@
 
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { ChatInterface } from "@/components/ChatInterface";
-import { AnalyticsCard } from "@/components/AnalyticsCard";
-import { AnalyticsChart } from "@/components/AnalyticsChart";
-import { Users, GraduationCap, TrendingUp, Activity, PhoneCall, BookOpen, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { mcubeService } from "@/services/mcube";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import React, { useEffect, useState } from 'react';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { LineChart } from '@/components/ui/chart';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { mcubeService, CallRecord } from '@/services/mcube';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Phone, PhoneIncoming, PhoneOutgoing, Calendar, Clock } from 'lucide-react';
+import { McubeCallLogsList } from '@/components/CallAnalysis/McubeCallLogsList';
 
-const Index = () => {
-  const [stats, setStats] = useState({
-    totalStudents: "12,361",
-    inquiries: "932",
-    conversionRate: "3.24%",
-    activeApplicants: "521"
-  });
+const IndexPage = () => {
+  const [recentCalls, setRecentCalls] = useState<CallRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [callData, setCallData] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isConnected, setIsConnected] = useState(true);
-
-  const fetchCallData = async () => {
-    setIsLoading(true);
+  const fetchRecentCalls = async () => {
     try {
-      const calls = mcubeService.getCalls();
-      setCallData(calls);
-      setIsConnected(true);
-      
-      // Update stats based on call data
-      if (calls && calls.length > 0) {
-        const uniqueContacts = new Set(calls.map(call => call.customerPhone)).size;
-        const totalCalls = calls.length;
-        
-        const applicationKeywords = ["application", "apply", "applied", "submitted", "enrollment"];
-        const applicationCalls = calls.filter(call => {
-          const transcription = (call.transcription || "").toLowerCase();
-          return applicationKeywords.some(keyword => transcription.includes(keyword));
-        }).length;
-        
-        const conversionRate = totalCalls > 0 ? ((applicationCalls / totalCalls) * 100).toFixed(2) : "0.00";
-        
-        setStats({
-          totalStudents: uniqueContacts.toString(),
-          inquiries: totalCalls.toString(),
-          conversionRate: `${conversionRate}%`,
-          activeApplicants: applicationCalls.toString()
-        });
-        
-        toast.success("Dashboard updated with real-time data");
-      }
+      setIsLoading(true);
+      const calls = await mcubeService.getCalls({ limit: 5 });
+      setRecentCalls(calls);
     } catch (error) {
-      console.error("Error fetching call data:", error);
-      setIsConnected(false);
+      console.error('Error fetching recent calls:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCallData();
-    
-    // Subscribe to call updates
-    const unsubscribe = mcubeService.subscribeToCallUpdates((calls) => {
-      setCallData(calls);
-      setIsConnected(true);
-    });
-    
-    return () => unsubscribe();
+    fetchRecentCalls();
   }, []);
+
+  // Calculate stats from the calls data
+  const totalCalls = recentCalls.length;
+  const inboundCalls = recentCalls.filter(call => call.direction === 'inbound').length;
+  const outboundCalls = recentCalls.filter(call => call.direction === 'outbound').length;
+
+  // Format duration from seconds to MM:SS
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return "00:00";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   return (
     <DashboardLayout>
-      <div className="container p-6 space-y-6 animate-fade-in">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold font-poppins">College Dashboard</h1>
-            <p className="text-muted-foreground">Student recruitment and enrollment insights</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                Connected to MCUBE
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-amber-500"></span>
-                Connecting to MCUBE...
-              </Badge>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={fetchCallData} 
-              disabled={isLoading}
-              className="ml-2"
-            >
-              {isLoading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Refresh Now
-                </>
-              )}
-            </Button>
-          </div>
+      <div className="flex flex-col gap-6 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome to your call center dashboard</p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <AnalyticsCard 
-            title="Total Students" 
-            value={stats.totalStudents}
-            description="All contacts in database" 
-            icon={<Users size={18} />}
-            trend={{ value: 12.5, isPositive: true }}
-            isLoading={isLoading}
-          />
-          <AnalyticsCard 
-            title="Student Inquiries" 
-            value={stats.inquiries}
-            description="Last 30 days" 
-            icon={<PhoneCall size={18} />}
-            trend={{ value: 8.2, isPositive: true }}
-            isLoading={isLoading}
-          />
-          <AnalyticsCard 
-            title="Inquiry to Application" 
-            value={stats.conversionRate}
-            description="Conversion rate" 
-            icon={<TrendingUp size={18} />}
-            trend={{ value: 1.1, isPositive: false }}
-            isLoading={isLoading}
-          />
-          <AnalyticsCard 
-            title="Active Applicants" 
-            value={stats.activeApplicants}
-            description="Current application cycle" 
-            icon={<GraduationCap size={18} />}
-            trend={{ value: 4.3, isPositive: true }}
-            isLoading={isLoading}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <AnalyticsChart 
-              type="line"
-              title="Enrollment Trends"
-              description="Monthly inquiries and applications"
-            />
-          </div>
-          <div>
-            <AnalyticsChart 
-              type="pie"
-              title="Inquiry Distribution"
-              description="By program of interest"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <AnalyticsChart 
-              type="bar"
-              title="Program Popularity"
-              description="Applications by academic program"
-            />
-          </div>
-          <div className="lg:col-span-1 h-[500px]">
-            <div className="bg-white rounded-lg shadow-card h-full overflow-hidden">
-              <div className="border-b p-4">
-                <h3 className="text-lg font-semibold">Chat with Admissions AI</h3>
-                <p className="text-sm text-muted-foreground">Ask questions about student metrics</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4 flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Calls</p>
+                <p className="text-2xl font-bold">{totalCalls}</p>
               </div>
-              <div className="h-[calc(100%-64px)]">
-                <ChatInterface />
+              <div className="bg-primary/10 p-2 rounded-full">
+                <Phone className="h-4 w-4 text-primary" />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Inbound Calls</p>
+                <p className="text-2xl font-bold">{inboundCalls}</p>
+              </div>
+              <div className="bg-primary/10 p-2 rounded-full">
+                <PhoneIncoming className="h-4 w-4 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Outbound Calls</p>
+                <p className="text-2xl font-bold">{outboundCalls}</p>
+              </div>
+              <div className="bg-primary/10 p-2 rounded-full">
+                <PhoneOutgoing className="h-4 w-4 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Avg. Call Duration</p>
+                <p className="text-2xl font-bold">
+                  {formatDuration(
+                    totalCalls > 0 
+                      ? recentCalls.reduce((sum, call) => sum + (call.duration || 0), 0) / totalCalls 
+                      : 0
+                  )}
+                </p>
+              </div>
+              <div className="bg-primary/10 p-2 rounded-full">
+                <Clock className="h-4 w-4 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader className="pb-2">
+              <CardTitle>Call Volume</CardTitle>
+              <CardDescription>Call trends over the last 7 days</CardDescription>
+            </CardHeader>
+            <CardContent className="h-80">
+              {/* Call volume chart would go here */}
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                Call volume chart visualization
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Recent Calls</CardTitle>
+              <CardDescription>Latest call activity</CardDescription>
+            </CardHeader>
+            <CardContent className="px-2">
+              <McubeCallLogsList />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </DashboardLayout>
   );
 };
 
-export default Index;
+export default IndexPage;
