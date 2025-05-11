@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -111,7 +112,7 @@ const IndexPage = () => {
               <CardDescription>Call trends over the last 7 days</CardDescription>
             </CardHeader>
             <CardContent className="h-80">
-              {/* Replacing LineChart with a simple visualization since it doesn't exist */}
+              {/* Using a placeholder for the chart since LineChart doesn't exist */}
               <div className="h-full flex items-center justify-center text-muted-foreground">
                 Call volume chart visualization
               </div>

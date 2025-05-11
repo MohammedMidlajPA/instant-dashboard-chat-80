@@ -268,7 +268,7 @@ class McubeService {
   }
   
   /**
-   * Get recent call logs
+   * Get call logs (implement with proper null checks and array handling)
    */
   async getCallLogs(limit: number = 10): Promise<mcubeTypes.CallRecord[]> {
     // Check cache first
@@ -289,6 +289,8 @@ class McubeService {
       direction: Math.random() > 0.5 ? 'inbound' : 'outbound',
       status: ['completed', 'missed', 'busy', 'failed', 'no-answer'][Math.floor(Math.random() * 5)],
       recordingUrl: Math.random() > 0.3 ? `https://example.com/recordings/call-${index}.wav` : undefined,
+      // Add keywords array to ensure it's always an array and not null or undefined
+      keywords: [],
     }));
     
     // Store in cache
@@ -298,7 +300,7 @@ class McubeService {
   }
   
   /**
-   * Get call details by ID
+   * Get call details by ID with proper null checks and array handling
    */
   async getCallDetails(callId: string): Promise<mcubeTypes.CallRecord | null> {
     // Check cache first
@@ -319,7 +321,9 @@ class McubeService {
       direction: Math.random() > 0.5 ? 'inbound' : 'outbound',
       status: ['completed', 'missed', 'busy', 'failed', 'no-answer'][Math.floor(Math.random() * 5)],
       recordingUrl: Math.random() > 0.3 ? `https://example.com/recordings/${callId}.wav` : undefined,
-      notes: "Mock call detail entry for demonstration"
+      notes: "Mock call detail entry for demonstration",
+      // Ensure keywords is always an array
+      keywords: [],
     };
     
     // Store in cache
@@ -330,11 +334,35 @@ class McubeService {
 
   // Methods needed for CallAnalysis components
   async getCalls(filters?: mcubeTypes.CallFilters): Promise<mcubeTypes.CallRecord[]> {
-    return this.getCallLogs(filters?.limit || 10);
+    try {
+      // Ensure we return an array even if there's an error
+      const calls = await this.getCallLogs(filters?.limit || 10);
+      // Guarantee keywords is always an array to prevent t.map is not a function
+      return calls.map(call => ({
+        ...call,
+        keywords: Array.isArray(call.keywords) ? call.keywords : []
+      }));
+    } catch (error) {
+      console.error("Error getting calls:", error);
+      // Return empty array on error to avoid null/undefined issues
+      return [];
+    }
   }
 
   async getCallById(callId: string): Promise<mcubeTypes.CallRecord | null> {
-    return this.getCallDetails(callId);
+    try {
+      const call = await this.getCallDetails(callId);
+      if (!call) return null;
+      
+      // Ensure call.keywords is always an array
+      return {
+        ...call,
+        keywords: Array.isArray(call.keywords) ? call.keywords : []
+      };
+    } catch (error) {
+      console.error("Error getting call by ID:", error);
+      return null;
+    }
   }
 
   /**
@@ -352,14 +380,21 @@ class McubeService {
       // Mock analysis data
       const enrichedCall: mcubeTypes.CallRecord = {
         ...call,
+        // Add sentiment to the top level, not in the analysis object
+        sentiment: Math.random() > 0.7 ? "positive" : Math.random() > 0.4 ? "neutral" : "negative",
         analysis: {
           successEvaluation: Math.random() > 0.5,
-          sentiment: Math.random() > 0.7 ? "positive" : Math.random() > 0.4 ? "neutral" : "negative",
+          // Remove sentiment from analysis object
           keywords: [
             "enrollment", "financial aid", "application", "deadlines", "campus tour"
           ],
-          summary: "The caller inquired about application deadlines and financial aid options.",
-          actionItems: ["Send follow-up email", "Schedule campus tour"]
+          keyInsights: ["The caller inquired about application deadlines and financial aid options."],
+          agentMetrics: {
+            talkSpeed: 120,
+            interruptionCount: 2,
+            questionCount: 5,
+            empathyScore: 85
+          }
         }
       };
       

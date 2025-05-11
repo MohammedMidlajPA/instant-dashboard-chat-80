@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,7 +26,7 @@ export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
       setError(null);
       
       try {
-        // Fix: Await the Promise before setting state
+        // Await the Promise before setting state
         const details = await mcubeService.getCallById(callId);
         setCall(details);
       } catch (err) {
@@ -46,19 +45,25 @@ export const CallDetailsView: React.FC<CallDetailsProps> = ({ callId }) => {
     
     setAnalyzing(true);
     try {
-      // Since analyzeSyntheonCall doesn't exist, we'll simulate analysis by adding analysis data
+      // Since analyzeSyntheonCall doesn't exist in the type, we'll simulate analysis by adding analysis data
       // to the current call object instead
       const enrichedCall: CallRecord = {
         ...call,
         analysis: {
           successEvaluation: Math.random() > 0.5,
-          sentiment: Math.random() > 0.7 ? "positive" : Math.random() > 0.4 ? "neutral" : "negative",
           keywords: [
             "enrollment", "financial aid", "application", "deadlines", "campus tour"
           ],
-          summary: "The caller inquired about application deadlines and financial aid options.",
-          actionItems: ["Send follow-up email", "Schedule campus tour"]
-        }
+          keyInsights: ["The caller inquired about application deadlines and financial aid options."],
+          agentMetrics: {
+            talkSpeed: 120,
+            interruptionCount: 2, 
+            questionCount: 5,
+            empathyScore: 85
+          }
+        },
+        // Add sentiment as a top-level property of CallRecord, not inside analysis
+        sentiment: Math.random() > 0.7 ? "positive" : Math.random() > 0.4 ? "neutral" : "negative"
       };
       
       setCall(enrichedCall);

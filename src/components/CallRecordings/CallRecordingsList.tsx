@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { 
   Table, 
@@ -108,7 +109,7 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {recordings.length === 0 ? (
+            {!Array.isArray(recordings) || recordings.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8">
                   <div className="flex flex-col items-center justify-center">
@@ -136,26 +137,32 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {recording.keywords.slice(0, 2).map((keyword, i) => (
-                        <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
-                          {keyword}
-                        </span>
-                      ))}
-                      {recording.keywords.length > 2 && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="bg-gray-100 px-2 py-0.5 rounded text-xs cursor-pointer">
-                                +{recording.keywords.length - 2}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="max-w-xs">
-                                {recording.keywords.slice(2).join(", ")}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                      {Array.isArray(recording.keywords) && recording.keywords.length > 0 ? (
+                        <>
+                          {recording.keywords.slice(0, 2).map((keyword, i) => (
+                            <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                              {keyword}
+                            </span>
+                          ))}
+                          {recording.keywords.length > 2 && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="bg-gray-100 px-2 py-0.5 rounded text-xs cursor-pointer">
+                                    +{recording.keywords.length - 2}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="max-w-xs">
+                                    {recording.keywords.slice(2).join(", ")}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-400">No topics</span>
                       )}
                     </div>
                   </TableCell>
@@ -188,11 +195,15 @@ export const CallRecordingsList: React.FC<CallRecordingsListProps> = ({
                           <div className="mt-4">
                             <h4 className="text-sm font-medium mb-2">Keywords</h4>
                             <div className="flex flex-wrap gap-1">
-                              {selectedRecording?.keywords.map((keyword, i) => (
-                                <span key={i} className="bg-gray-100 px-2 py-1 rounded text-xs">
-                                  {keyword}
-                                </span>
-                              ))}
+                              {Array.isArray(selectedRecording?.keywords) && selectedRecording?.keywords.length > 0 ? (
+                                selectedRecording?.keywords.map((keyword, i) => (
+                                  <span key={i} className="bg-gray-100 px-2 py-1 rounded text-xs">
+                                    {keyword}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-gray-400">No keywords available</span>
+                              )}
                             </div>
                           </div>
                         </DialogContent>

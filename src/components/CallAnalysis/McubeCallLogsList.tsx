@@ -13,11 +13,19 @@ export function McubeCallLogsList() {
   const fetchCallLogs = async () => {
     setLoading(true);
     try {
-      // Fix: Wait for the Promise to resolve
+      // Get calls and ensure keywords is always an array
       const callLogs = await mcubeService.getCalls({ limit: 10 });
-      setCalls(callLogs);
+      // Make sure we have an array of calls with keywords arrays
+      const safeCallLogs = Array.isArray(callLogs) ? callLogs.map(call => ({
+        ...call,
+        keywords: Array.isArray(call.keywords) ? call.keywords : []
+      })) : [];
+      
+      setCalls(safeCallLogs);
     } catch (error) {
       console.error("Error fetching call logs:", error);
+      // Set empty array on error to prevent null/undefined issues
+      setCalls([]);
     } finally {
       setLoading(false);
     }
@@ -27,7 +35,7 @@ export function McubeCallLogsList() {
   useEffect(() => {
     fetchCallLogs();
     
-    // Fix: Set up a simple polling mechanism instead of subscription
+    // Set up a simple polling mechanism instead of subscription
     const intervalId = setInterval(() => {
       fetchCallLogs();
     }, 30000); // Poll every 30 seconds
