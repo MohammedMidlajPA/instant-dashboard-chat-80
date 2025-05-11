@@ -56,34 +56,56 @@ export const CsvUploader: React.FC<CsvUploaderProps> = ({ onUpload, onColumnsDet
       return;
     }
 
+    // Enhanced CSV parsing with more flexible options
     Papa.parse(file, {
       header: true,
       dynamicTyping: true,
       skipEmptyLines: true,
+      delimiter: '',  // Auto-detect delimiter
+      transformHeader: (header) => header.trim(),  // Trim whitespace from headers
       complete: (results) => {
         setIsLoading(false);
         
         if (results.errors.length > 0) {
-          toast.error(`Error parsing file: ${results.errors[0].message}`);
+          const errorMsg = `Error parsing file: ${results.errors[0].message}`;
+          console.error(errorMsg, results.errors);
+          toast.error(errorMsg);
           return;
         }
 
         // If no data or headers detected
-        if (results.data.length === 0 || Object.keys(results.data[0]).length === 0) {
-          toast.error("No data found in the file or headers are missing");
+        if (results.data.length === 0) {
+          toast.error("No data found in the file");
+          return;
+        }
+
+        // Additional check for empty rows
+        const validData = results.data.filter(row => {
+          // Filter out empty objects or objects where all values are null/empty
+          const values = Object.values(row);
+          return values.length > 0 && values.some(val => val !== null && val !== '');
+        });
+
+        if (validData.length === 0) {
+          toast.error("File contains no valid data rows");
           return;
         }
 
         // Get column headers
-        const columns = Object.keys(results.data[0]);
-        onColumnsDetected(columns);
+        const columns = Object.keys(validData[0]);
         
-        // Pass data to parent component
-        onUpload(results.data);
-        toast.success(`Successfully imported ${results.data.length} contacts`);
+        if (columns.length === 0) {
+          toast.error("No columns detected in the file");
+          return;
+        }
+        
+        onColumnsDetected(columns);
+        onUpload(validData);
+        toast.success(`Successfully imported ${validData.length} contacts`);
       },
       error: (error) => {
         setIsLoading(false);
+        console.error("CSV parsing error:", error);
         toast.error(`Error parsing file: ${error.message}`);
       }
     });
@@ -111,7 +133,7 @@ export const CsvUploader: React.FC<CsvUploaderProps> = ({ onUpload, onColumnsDet
             <FileSpreadsheet className="h-12 w-12 text-gray-400 mb-3" />
             <h3 className="mb-2 text-lg font-medium">Upload Contact List</h3>
             <p className="mb-4 text-sm text-gray-500 text-center">
-              Drag and drop your CSV or Excel file here, or click to browse
+              Drag and drop your CSV, Excel or Google Sheet file here, or click to browse
             </p>
             <Button
               variant="outline"
@@ -123,7 +145,7 @@ export const CsvUploader: React.FC<CsvUploaderProps> = ({ onUpload, onColumnsDet
               {isLoading ? "Uploading..." : "Select File"}
             </Button>
             <p className="text-xs text-gray-500">
-              Supports CSV, Excel (.xls, .xlsx) files
+              Supports CSV, Excel (.xls, .xlsx) and Google Sheets export files
             </p>
           </>
         ) : (

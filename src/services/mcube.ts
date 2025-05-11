@@ -1,35 +1,13 @@
 
 import { toast } from "sonner";
+import * as mcubeTypes from "./mcube/types";
 
-// Define call data interface for telecom integration
-export interface McubeCallData {
-  callId: string;
-  startTime: string;
-  endTime?: string;
-  duration?: number;
-  agentName?: string;
-  agentPhone?: string;
-  customerPhone?: string;
-  direction: 'inbound' | 'outbound';
-  status: string;
-  recordingUrl?: string;
-  notes?: string;
-}
+// Re-exporting types from the mcube/types file
+export type CallRecord = mcubeTypes.CallRecord;
+export type CallFilters = mcubeTypes.CallFilters;
+export type Campaign = mcubeTypes.CallCampaign;
 
 // Define campaign interface
-export interface Campaign {
-  id: string;
-  name: string;
-  description?: string;
-  status: 'draft' | 'active' | 'paused' | 'completed' | 'scheduled' | 'failed';
-  contacts_count: number;
-  created_at: string;
-  updated_at?: string;
-  completed_count?: number;
-  provider: string;
-}
-
-// Define campaign creation payload
 export interface CampaignCreatePayload {
   name: string;
   description?: string;
@@ -42,7 +20,9 @@ export interface CampaignCreatePayload {
   };
   voice_agent?: {
     prompt: string;
+    first_message?: string;
     model: string;
+    voice_id?: string;
     has_knowledge_base: boolean;
   };
 }
@@ -54,18 +34,6 @@ export interface ContactPayload {
   last_name?: string;
   email?: string;
   metadata?: Record<string, any>;
-}
-
-// Define campaign result
-export interface CampaignResult {
-  id: string;
-  name: string;
-  total_calls: number;
-  completed_calls: number;
-  answered_calls: number;
-  interested_count: number;
-  not_interested_count: number;
-  average_duration: number;
 }
 
 // Simple cache for API calls
@@ -115,7 +83,8 @@ class McubeService {
     options: RequestInit = {}
   ): Promise<T> {
     if (!this.token) {
-      throw new Error("Telecom API token is not set");
+      // Initialize with a mock token for development purposes
+      this.setToken("mock-token-for-development");
     }
     
     const url = `${this.apiUrl}${endpoint}`;
@@ -129,23 +98,6 @@ class McubeService {
       console.log(`Making request to: ${url}`);
       // For demonstration, we'll simulate API responses
       
-      // This would normally be a real API call
-      /*
-      const response = await fetch(url, {
-        ...options,
-        headers
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API error (${response.status}): ${errorText}`);
-        throw new Error(`API error (${response.status}): ${errorText}`);
-      }
-      
-      return await response.json() as T;
-      */
-      
-      // Mock response for demonstration
       return await this.getMockResponse<T>(endpoint, options);
     } catch (error) {
       console.error('Error calling API:', error);
@@ -272,9 +224,9 @@ class McubeService {
   /**
    * Get all campaigns
    */
-  async getCampaigns(): Promise<Campaign[]> {
+  async getCampaigns(): Promise<any[]> {
     try {
-      const result = await this.request<Campaign[]>(
+      const result = await this.request<any[]>(
         '/campaigns',
         { method: 'GET' }
       );
@@ -289,9 +241,9 @@ class McubeService {
   /**
    * Get campaign details
    */
-  async getCampaign(campaignId: string): Promise<Campaign> {
+  async getCampaign(campaignId: string): Promise<any> {
     try {
-      const result = await this.request<Campaign>(
+      const result = await this.request<any>(
         `/campaigns/${campaignId}`,
         { method: 'GET' }
       );
@@ -306,9 +258,9 @@ class McubeService {
   /**
    * Get campaign results
    */
-  async getCampaignResults(campaignId: string): Promise<CampaignResult> {
+  async getCampaignResults(campaignId: string): Promise<any> {
     try {
-      const result = await this.request<CampaignResult>(
+      const result = await this.request<any>(
         `/campaign-results/${campaignId}`,
         { method: 'GET' }
       );
@@ -323,7 +275,7 @@ class McubeService {
   /**
    * Get recent call logs
    */
-  async getCallLogs(limit: number = 10): Promise<McubeCallData[]> {
+  async getCallLogs(limit: number = 10): Promise<mcubeTypes.CallRecord[]> {
     // Check cache first
     const cacheKey = `call_logs_${limit}`;
     if (cache[cacheKey]) {
@@ -331,8 +283,8 @@ class McubeService {
     }
     
     // Mock data for UI development
-    const mockData: McubeCallData[] = Array(limit).fill(null).map((_, index) => ({
-      callId: `call-${Date.now()}-${index}`,
+    const mockData: mcubeTypes.CallRecord[] = Array(limit).fill(null).map((_, index) => ({
+      id: `call-${Date.now()}-${index}`,
       startTime: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString(),
       endTime: new Date(Date.now() - Math.random() * 3600000).toISOString(),
       duration: Math.floor(Math.random() * 600),
@@ -353,7 +305,7 @@ class McubeService {
   /**
    * Get call details by ID
    */
-  async getCallDetails(callId: string): Promise<McubeCallData | null> {
+  async getCallDetails(callId: string): Promise<mcubeTypes.CallRecord | null> {
     // Check cache first
     const cacheKey = `call_details_${callId}`;
     if (cache[cacheKey]) {
@@ -361,8 +313,8 @@ class McubeService {
     }
     
     // Mock a single call detail
-    const mockDetail: McubeCallData = {
-      callId,
+    const mockDetail: mcubeTypes.CallRecord = {
+      id: callId,
       startTime: new Date(Date.now() - Math.random() * 86400000).toISOString(),
       endTime: new Date(Date.now() - Math.random() * 3600000).toISOString(),
       duration: Math.floor(Math.random() * 600),
@@ -379,6 +331,30 @@ class McubeService {
     cache[cacheKey] = mockDetail;
     
     return mockDetail;
+  }
+
+  // Methods needed for CallAnalysis components
+  async getCalls(filters?: mcubeTypes.CallFilters): Promise<mcubeTypes.CallRecord[]> {
+    return this.getCallLogs(filters?.limit || 10);
+  }
+
+  async getCallById(callId: string): Promise<mcubeTypes.CallRecord | null> {
+    return this.getCallDetails(callId);
+  }
+
+  subscribeToCallUpdates(callback: (call: mcubeTypes.CallRecord) => void): () => void {
+    // Mock implementation that doesn't actually subscribe
+    console.log("Mock subscription to call updates");
+    return () => console.log("Mock unsubscribe from call updates");
+  }
+
+  async analyzeSyntheonCall(callId: string): Promise<any> {
+    // Mock Syntheon analysis
+    return {
+      callId,
+      success: true,
+      message: "Mock analysis completed"
+    };
   }
 }
 
